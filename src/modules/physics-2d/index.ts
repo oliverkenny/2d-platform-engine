@@ -177,7 +177,7 @@ export function Physics2D(): Module {
 
       for (const b of snap.bodies) {
         drawBodyOutline(draw, {
-          id: b.id as unknown as Bo,
+          id: b.id as unknown as BodyId,
           t: { x: b.t.x, y: b.t.y, angle: b.t.angle }
         })
       }
