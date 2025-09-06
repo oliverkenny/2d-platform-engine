@@ -1,0 +1,67 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>module-onboarding | 2d-platform-engine</title><meta name="description" content="Documentation for 2d-platform-engine"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><a href="../index.html" class="title">2d-platform-engine</a><div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/><ul role="listbox" id="tsd-search-results"></ul><div id="tsd-search-status" aria-live="polite" aria-atomic="true"><div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><ul class="tsd-breadcrumb" aria-label="Breadcrumb"><li><a href="" aria-current="page">module-onboarding</a></li></ul></div><div class="tsd-panel tsd-typography"><h1 id="module-onboarding" class="tsd-anchor-link">Module Onboarding<a href="#module-onboarding" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1><p>This guide explains the minimal conventions and a practical template for creating modules that plug cleanly into the engine. Use this as a checklist when authoring or reviewing modules.</p>
+<p>Goals</p>
+<ul>
+<li>Produce small, self‑contained modules that communicate only via ctx.bus and ctx.services.</li>
+<li>Encourage predictable lifecycle behavior (init → start → update → render → destroy).</li>
+<li>Provide a consistent pattern for registering services, loading assets, and exposing APIs.</li>
+</ul>
+<p>Minimal module template (conceptual)</p>
+<ul>
+<li>id: unique namespaced identifier (e.g. &quot;audio/webaudio&quot;, &quot;ai/pathfinding&quot;).</li>
+<li>init(ctx): register services, subscribe to events (no heavy IO).</li>
+<li>start(ctx): preload assets and perform per‑session initialization.</li>
+<li>update(ctx, dt): deterministic logic at fixed timestep.</li>
+<li>render(ctx, alpha): enqueue draw commands or perform purely visual work; do not mutate simulation state.</li>
+<li>destroy(): cleanup and unsubscribe.</li>
+</ul>
+<p>Checklist (before PR)</p>
+<ul>
+<li>id is unique and namespaced.</li>
+<li>No direct imports from other modules in src/modules/* — use tokens &amp; ctx.services.</li>
+<li>Services the module exposes are registered in init() under tokens and documented.</li>
+<li>All asynchronous asset loading happens in start().</li>
+<li>update() uses dt in seconds and contains deterministic logic only.</li>
+<li>render() enqueues draws or uses provided DrawService; render does not change simulation state.</li>
+<li>Subscriptions to ctx.bus are removed in destroy() (or you keep returned off function and call it).</li>
+<li>Public API surfaces (service ports) are minimal and documented; prefer small, focused methods.</li>
+</ul>
+<p>Service registration example</p>
+<ul>
+<li>In init(ctx):
+<ul>
+<li>ctx.services.set(MY_SERVICE_TOKEN, myServiceImpl)</li>
+<li>ctx.bus.on('some/event', handler)</li>
+</ul>
+</li>
+</ul>
+<p>Starting and asset loading</p>
+<ul>
+<li>start(ctx) should await any required asset loading (images, audio, data). Use ctx.services.assets for shared asset loading where appropriate.</li>
+<li>Keep start() idempotent for safe restarts.</li>
+</ul>
+<p>Update &amp; render patterns</p>
+<ul>
+<li>Update: mutate module state and call other service APIs (e.g., physics write) as needed.</li>
+<li>Render: compute visual state and call ctx.services.get(RENDER_QUEUE) or DrawService to enqueue drawing functions. Prefer RenderQueue.enqueue so the RenderCoordinator controls ordering and camera transforms.</li>
+</ul>
+<p>Examples and common pitfalls</p>
+<ul>
+<li>Do: expose a read port and a write port separately if consumers only need read access (e.g., PHYSICS_READ vs PHYSICS_WRITE).</li>
+<li>Do: fail gracefully from start() if assets are missing (throwing will stop engine start()).</li>
+<li>Don’t: draw directly to canvas from module.render(); instead enqueue to the render queue unless you own the renderer.</li>
+<li>Don’t: perform heavy IO in init().</li>
+</ul>
+<p>Testing &amp; debugging tips</p>
+<ul>
+<li>For unit tests, provide mock services in a fake GameContext (mocked ctx.services and ctx.bus). Drive update() manually with a fixed dt.</li>
+<li>To debug lifecycle issues, instrument init/start/update/render with debug/panel registration or log events on ctx.bus.</li>
+</ul>
+<p>Where to look for examples</p>
+<ul>
+<li>modules/renderer-canvas — DrawService registration.</li>
+<li>modules/render-coordinator — render queue usage and pass coordination.</li>
+<li>modules/physics-2d — service tokens and deterministic stepping.</li>
+<li>modules/demo-bouncy — a compact, end‑to‑end example of a module using physics, draw, and input.</li>
+</ul>
+<p>When in doubt, follow the principle: keep modules focused, expose a small API, rely on ctx.bus &amp; ctx.services, and respect the lifecycle hooks.</p>
+</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg><h3>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg><h3>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#module-onboarding"><span>Module <wbr/>Onboarding</span></a></div></details></div><div class="site-menu"><nav class="tsd-navigation"><a href="../modules.html">2d-platform-engine</a><ul class="tsd-small-nested-navigation" id="tsd-nav-container"><li>Loading...</li></ul></nav></div></div></div><footer><p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer><div class="overlay"></div></body></html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>engine-loop | 2d-platform-engine</title><meta name="description" content="Documentation for 2d-platform-engine"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><a href="../index.html" class="title">2d-platform-engine</a><div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/><ul role="listbox" id="tsd-search-results"></ul><div id="tsd-search-status" aria-live="polite" aria-atomic="true"><div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><ul class="tsd-breadcrumb" aria-label="Breadcrumb"><li><a href="" aria-current="page">engine-loop</a></li></ul></div><div class="tsd-panel tsd-typography"><h1 id="engine-loop--timekeeping" class="tsd-anchor-link">Engine Loop &amp; Timekeeping<a href="#engine-loop--timekeeping" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1><p>This guide explains the fixed‑step update loop the engine uses, why it's used, and practical guidance for writing deterministic systems and tests.</p>
+<p>Why fixed‑step</p>
+<ul>
+<li>Determinism: fixed timestep produces repeatable simulations useful for physics, replays, and tests.</li>
+<li>Stability: physics integrations behave more predictably with a constant dt.</li>
+</ul>
+<p>Core concepts</p>
+<ul>
+<li>fixedStep: target update interval in seconds (e.g. 1/60).</li>
+<li>accumulator: accumulates real time and drives how many update steps to run per frame.</li>
+<li>alpha: interpolation factor in [0..1] representing how far between the last completed update and the next one the render should represent.</li>
+</ul>
+<p>Simplified pseudocode</p>
+<ul>
+<li>On each requestAnimationFrame(t):
+const dtMs = t - last
+accumulator += dtMs / 1000
+while (accumulator &gt;= fixedStep) {
+for each module: module.update(ctx, fixedStep)
+accumulator -= fixedStep
+}
+const alpha = accumulator / fixedStep
+for each module: module.render(ctx, alpha)</li>
+</ul>
+<p>Practical rules for module authors</p>
+<ul>
+<li>Treat dt as seconds (not ms). Use floating point arithmetic.</li>
+<li>update(): perform deterministic simulation logic; do not use performance.now() inside update for time deltas.</li>
+<li>render(): use alpha for interpolation of visuals only; do not mutate simulation state.</li>
+</ul>
+<p>Stepping strategies</p>
+<ul>
+<li>Single owner stepping (module steps physics internally in update): the physics module calls physics.step(dt) during its update hook.</li>
+<li>Exposed step token (PHYSICS_STEP): engine or another coordinating module may call step to centralize timing.</li>
+</ul>
+<p>Testing deterministic behavior</p>
+<ul>
+<li>Unit tests: call module.update(ctx, fixedStep) in a loop with controlled inputs; avoid relying on wall clock.</li>
+<li>Integration tests: create a fake TimeService and advance its accumulator manually; call engine.frame or the public update methods.</li>
+</ul>
+<p>Handling slow frames</p>
+<ul>
+<li>Avoid unbounded update loops; optionally cap number of updates per frame to avoid spiraling (e.g., maxUpdates = 5).</li>
+<li>If the engine falls far behind, consider a recovery strategy (drop frames, clamp dt) but document the tradeoff (loss of determinism vs avoiding freeze).</li>
+</ul>
+<p>Interpolation and visual smoothness</p>
+<ul>
+<li>Use alpha in render to interpolate positions/rotations between previous and current physics states for smooth visuals.</li>
+<li>Keep previous state snapshots or expose read APIs that return both previous and current states if needed.</li>
+</ul>
+<p>Summary</p>
+<ul>
+<li>Fixed‑step with accumulator + alpha balances determinism and smooth rendering. Follow the rules: deterministic updates in update(), interpolation in render(), and avoid time sources other than the provided dt for simulation.</li>
+</ul>
+</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg><h3>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg><h3>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#engine-loop--timekeeping"><span>Engine <wbr/>Loop &amp; <wbr/>Timekeeping</span></a></div></details></div><div class="site-menu"><nav class="tsd-navigation"><a href="../modules.html">2d-platform-engine</a><ul class="tsd-small-nested-navigation" id="tsd-nav-container"><li>Loading...</li></ul></nav></div></div></div><footer><p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer><div class="overlay"></div></body></html>

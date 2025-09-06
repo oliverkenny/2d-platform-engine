@@ -7,10 +7,10 @@ import type {
   PanelId
 } from '../../engine/core/Types'
 import { Colours } from '../../util/colour'
-import { DRAW_ALL } from '../../engine/core/tokens/draw'
-import { DrawServicePort } from '../../engine/core/ports'
 import type { DebugOverlayOptions } from './types'
 import { generateId } from '../../util/ids'
+import { queueRender } from '../../util/render'
+
 
 type Margin = { x: number; y: number; line: number }
 
@@ -26,7 +26,6 @@ export function DebugOverlayModule(opts: DebugOverlayOptions = {}): Module {
   } = opts
 
   // Runtime state
-  let draw: DrawServicePort | undefined
   const panels = new Map<PanelId, DebugPanel>()
   let activePanel: PanelId | undefined
   let visible = startVisible
@@ -61,38 +60,7 @@ export function DebugOverlayModule(opts: DebugOverlayOptions = {}): Module {
     return mm > 0 ? `${mm}m ${ss}s` : `${ss}s`
   }
 
-  function drawLines(lines: string[]) {
-    if (!draw) return
-    let y = margin.y
-    const x = margin.x
-    for (const line of lines) {
-      draw.text(line, x, y, Colours.White)
-      y += margin.line
-    }
-  }
-
-  function drawPanel(ctx: GameContext, panel?: DebugPanel) {
-    if (!draw) return
-
-    if (!panel) {
-      drawLines(['[DEBUG OVERLAY]', 'No active panel'])
-      return
-    }
-
-    const lines = panel.render?.(ctx) ?? []
-    drawLines([
-      '[DEBUG OVERLAY]',
-      `${panel.title} (${panel.id})`,
-      '',
-      ...lines
-    ])
-    panel.draw?.(ctx, draw)
-  }
-
-  // --- Panel ordering & cycling helpers -------------------------------
-
   function orderedPanels(): DebugPanel[] {
-    // Stable sort: order (asc), then title (asc), then id (asc)
     return [...panels.values()].sort((a, b) => {
       const ao = a.order ?? 0
       const bo = b.order ?? 0
@@ -112,7 +80,6 @@ export function DebugOverlayModule(opts: DebugOverlayOptions = {}): Module {
       activePanel = undefined
       return
     }
-    // wrap-around
     const i = ((idx % list.length) + list.length) % list.length
     activePanel = list[i].id as PanelId
   }
@@ -169,16 +136,40 @@ export function DebugOverlayModule(opts: DebugOverlayOptions = {}): Module {
       ctx.bus.on('debug/panel/unregister', (ev) => unregisterPanel(ev.id))
     },
 
-    start(ctx) {
-      // DrawService is required; throw early if not present.
-      draw = ctx.services.getOrThrow(DRAW_ALL)
+    start() {
       sessionStart = Date.now()
     },
 
     render(ctx) {
-      if (!visible || !draw) return
+      if (!visible) return
       const panel = activePanel ? panels.get(activePanel) : undefined
-      drawPanel(ctx, panel)
+
+      queueRender(ctx, 'debug', (d) => {
+        let y = margin.y
+        const x = margin.x
+
+        const writeLines = (lines: string[]) => {
+          for (const line of lines) {
+            d.text(line, x, y, Colours.White)
+            y += margin.line
+          }
+        }
+
+        if (!panel) {
+          writeLines(['[DEBUG OVERLAY]', 'No active panel'])
+          return
+        }
+
+        const lines = panel.render?.(ctx) ?? []
+        writeLines([
+          '[DEBUG OVERLAY]',
+          `${panel.title} (${panel.id})`,
+          '',
+          ...lines
+        ])
+
+        panel.draw?.(ctx, d)
+      }, /*z*/ 9999) // very high Z so it stays on top
     },
 
     onEvent(_ctx, _ev: GameEvent) {
@@ -189,7 +180,6 @@ export function DebugOverlayModule(opts: DebugOverlayOptions = {}): Module {
       offKeydown?.()
       panels.clear()
       activePanel = undefined
-      draw = undefined
     },
   }
 

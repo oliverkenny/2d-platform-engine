@@ -5,5 +5,8 @@
   "excludePrivate": true,
   "excludeInternal": true,
   "tsconfig": "tsconfig.json",
-  "out": "docs"
+  "out": "docs",
+  "readme": "ENGINE_API.md",
+  "projectDocuments": ["docs-src/wiki/**/*.md"],
+  "sort": ["documents-first", "kind", "visibility", "alphabetical"]
 }

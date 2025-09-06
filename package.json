@@ -1,5 +1,5 @@
 {
-  "name": "topdown-engine-starter",
+  "name": "2d-platform-engine",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "typedoc": "^0.28.12",
+    "typedoc-plugin-pages": "^1.1.0",
     "typescript": "^5.9.2",
     "vite": "^5.0.0"
   },

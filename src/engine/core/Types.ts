@@ -1,5 +1,5 @@
 import { DrawServicePort } from './ports/draw.all'
-import { BodyId } from './primitives'
+import { BodyId, Camera2D, Space } from './primitives'
 import type { ServiceToken } from './Token'
 
 /**
@@ -328,3 +328,5 @@ export interface SpriteOptions {
   /** Alpha transparency, 0..1, default 1 */
   alpha?: number
 }
+
+export type RenderFn = (draw: DrawServicePort, cam?: Readonly<Camera2D>) => void;

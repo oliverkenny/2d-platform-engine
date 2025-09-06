@@ -1,12 +1,13 @@
 import type { Module, GameContext } from '../../engine/core/Types'
 import type { BodyId } from '../../engine/core/primitives'
-import type { PhysicsReadPort, PhysicsWritePort, DrawServicePort, Camera2DPort } from '../../engine/core/ports'
-import { PHYSICS_READ, PHYSICS_WRITE, DRAW_ALL, CAMERA_2D } from '../../engine/core/tokens'
+import type { PhysicsReadPort, PhysicsWritePort, Camera2DPort } from '../../engine/core/ports'
+import { PHYSICS_READ, PHYSICS_WRITE, CAMERA_2D } from '../../engine/core/tokens'
 import { Colours } from '../../util/colour'
 import { PreloadImages } from '../../util/preload'
 import { loadSpriteSheet } from '../../util/spritesheet'
 import { Animator } from '../../util/animator'
 import { Materials } from '../../util/material'
+import { queueRender } from '../../util/render'
 
 export default function DemoBouncy(): Module {
   // physics body ids...
@@ -26,7 +27,6 @@ export default function DemoBouncy(): Module {
   }
 
   // services
-  let draw!: DrawServicePort
   let physics_read!: PhysicsReadPort
   let physics_write!: PhysicsWritePort
   let camera!: Camera2DPort
@@ -65,7 +65,6 @@ export default function DemoBouncy(): Module {
     },
 
     async start(ctx: GameContext) {
-      draw          = ctx.services.getOrThrow(DRAW_ALL)
       physics_read  = ctx.services.getOrThrow(PHYSICS_READ)
       physics_write = ctx.services.getOrThrow(PHYSICS_WRITE)
       camera        = ctx.services.getOrThrow(CAMERA_2D)
@@ -184,39 +183,44 @@ export default function DemoBouncy(): Module {
 
     render(ctx, _alpha) {
       const cam = camera.get()
-      draw.clear()
 
-      // Background (UI layer, pixels)
+      // Background (UI pixels) -> background pass
       const bg = ctx.services.assets.getImage('background')
-      if (bg) draw.toUi(() => draw.sprite(bg, 0, 0))
+      if (bg) {
+        queueRender(ctx, 'background', (d) => {
+          d.sprite(bg, 0, 0)
+        }, -1000)
+      }
 
       if (!ready) {
-        // Loading bar in UI pixels
-        draw.toUi(() => {
+        // Loading bar (UI pixels) -> ui pass
+        queueRender(ctx, 'ui', (d) => {
           const w = Math.floor(ctx.config.width * 0.6)
           const h = 8
           const x = Math.floor((ctx.config.width - w) / 2)
           const y = Math.floor((ctx.config.height - h) / 2)
-          draw.rect(x, y, w, h, Colours.Black)
-          draw.rect(x, y, Math.max(1, Math.floor(w * progress)), h, Colours.Blue)
-          draw.text(`Loading ${(progress * 100) | 0}%`, x, y - 10, Colours.White)
-        })
+          d.rect(x, y, w, h, Colours.Black)
+          d.rect(x, y, Math.max(1, Math.floor(w * progress)), h, Colours.Blue)
+          d.text(`Loading ${(progress * 100) | 0}%`, x, y - 10, Colours.White)
+        }, 1000)
         return
       }
 
       // -------- WORLD PASS (meters, y-up) ------------------------------------
-      draw.toWorld(cam, () => {
-        // Player
+      queueRender(ctx, 'world', (d, worldCam) => {
+        if (!worldCam) return
+
+        // Player sprite
         if (playerImg && playerAnim && playerBody && physics_read) {
           const t = physics_read.getTransform(playerBody)!
           const { sx, sy, sw, sh } = playerAnim.sourceRect
 
           // Scale sheet pixels to meters so 1px == 1/cam.ppm meters
-          const pxToMeters = 1 / cam.ppm
+          const pxToMeters = 1 / worldCam.ppm
           const scaleX = 2 * player.dir * pxToMeters  // 2x size, flip when facing left
           const scaleY = 2 * pxToMeters
 
-          draw.sprite(
+          d.sprite(
             playerImg,
             t.x, t.y,
             { sx, sy, sw, sh, ox: sw/2, oy: sh/2, scaleX, scaleY, rotation: t.angle }
@@ -226,32 +230,32 @@ export default function DemoBouncy(): Module {
         // Crate (simple AABB in meters)
         if (boxBody && physics_read) {
           const t = physics_read.getTransform(boxBody)!
-          draw.rect(t.x - 0.4, t.y - 0.4, 0.8, 0.8, Colours.Blue) // 0.8m box
+          d.rect(t.x - 0.4, t.y - 0.4, 0.8, 0.8, Colours.Blue) // 0.8m box
         }
 
         // Platform
         if (platformBody && physics_read) {
           const t = physics_read.getTransform(platformBody)!
-          draw.rect(t.x - 0.64, t.y - 0.64, 1.28, 1.28, Colours.Brown)
+          d.rect(t.x - 0.64, t.y - 0.64, 1.28, 1.28, Colours.Brown)
         }
 
         // Ground (full-width bar in meters)
         if (groundBody && physics_read) {
           const g = physics_read.getTransform(groundBody)!
-          const worldHalfWidth = ctx.config.width / cam.ppm / 2
-          draw.rect(g.x - worldHalfWidth, g.y - 0.16, worldHalfWidth * 2, 0.32, Colours.Black)
+          const worldHalfWidth = ctx.config.width / worldCam.ppm / 2
+          d.rect(g.x - worldHalfWidth, g.y - 0.16, worldHalfWidth * 2, 0.32, Colours.Black)
         }
-      })
+      }, /*z*/ 10)
 
       // -------- UI PASS (pixels, y-down) -------------------------------------
-      draw.toUi(() => {
+      queueRender(ctx, 'ui', (d) => {
         // Label the player (anchor UI to world point)
         if (playerBody && physics_read) {
           const t = physics_read.getTransform(playerBody)!
-          const s = draw.toScreen({ x: t.x, y: t.y }, cam)
-          draw.text('Player', s.x - 16, s.y - 10, Colours.White)
+          const s = d.toScreen({ x: t.x, y: t.y }, cam)
+          d.text('Player', s.x - 16, s.y - 10, Colours.White)
         }
-      })
+      }, /*z*/ 100)
     },
 
     destroy() {

@@ -1,0 +1,66 @@
+<!DOCTYPE html><html class="default" lang="en" data-base="../"><head><meta charset="utf-8"/><meta http-equiv="x-ua-compatible" content="IE=edge"/><title>physics | 2d-platform-engine</title><meta name="description" content="Documentation for 2d-platform-engine"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="../assets/style.css"/><link rel="stylesheet" href="../assets/highlight.css"/><script defer src="../assets/main.js"></script><script async src="../assets/icons.js" id="tsd-icons-script"></script><script async src="../assets/search.js" id="tsd-search-script"></script><script async src="../assets/navigation.js" id="tsd-nav-script"></script><script async src="../assets/hierarchy.js" id="tsd-hierarchy-script"></script></head><body><script>document.documentElement.dataset.theme = localStorage.getItem("tsd-theme") || "os";document.body.style.display="none";setTimeout(() => window.app?app.showPage():document.body.style.removeProperty("display"),500)</script><header class="tsd-page-toolbar"><div class="tsd-toolbar-contents container"><a href="../index.html" class="title">2d-platform-engine</a><div id="tsd-toolbar-links"></div><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-search"></use></svg></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results" aria-autocomplete="list" aria-expanded="true" autocapitalize="off" autocomplete="off" placeholder="Search the docs" maxLength="100"/><ul role="listbox" id="tsd-search-results"></ul><div id="tsd-search-status" aria-live="polite" aria-atomic="true"><div>Preparing search index...</div></div></dialog><a href="#" class="tsd-widget menu" id="tsd-toolbar-menu-trigger" data-toggle="menu" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-menu"></use></svg></a></div></header><div class="container container-main"><div class="col-content"><div class="tsd-page-title"><ul class="tsd-breadcrumb" aria-label="Breadcrumb"><li><a href="" aria-current="page">physics</a></li></ul></div><div class="tsd-panel tsd-typography"><h1 id="physics-2d-api-guide" class="tsd-anchor-link">Physics (2D) API Guide<a href="#physics-2d-api-guide" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h1><p>This guide documents the intended usage patterns and design assumptions for the physics subsystem. It focuses on the deterministic, fixed‑timestep model and the ported API surface exposed to modules.</p>
+<p>Units &amp; conventions</p>
+<ul>
+<li>Distances: meters.</li>
+<li>Angles: radians.</li>
+<li>Velocities: units per second.</li>
+<li>Coordinate system: engine defines handedness (check module docs; this engine uses y‑up conventions in modules/examples).</li>
+</ul>
+<p>Ports and tokens</p>
+<ul>
+<li>PHYSICS_READ: read‑only snapshot APIs for rendering and queries.</li>
+<li>PHYSICS_WRITE: mutation APIs to create/remove bodies, apply forces, set properties.</li>
+<li>PHYSICS_STEP: stepping API that advances simulation deterministically.</li>
+</ul>
+<p>Stepping &amp; determinism</p>
+<ul>
+<li>The physics service provides step(dt) which must be called with consistent dt values (e.g., engine fixedStep).</li>
+<li>Deterministic stepping enables repeatable replays and predictable tests. Avoid calling step with varying dt in production.</li>
+</ul>
+<p>Body lifecycle</p>
+<ul>
+<li>createBody(opts) → BodyId: create with explicit properties (type, mass, shapes, userData).</li>
+<li>removeBody(id): schedules or immediately removes the body (implementation may queue removals; check return boolean).</li>
+<li>setters (setPosition, setVelocity, setAngle) should return boolean indicating success.</li>
+</ul>
+<p>Contact and query events</p>
+<ul>
+<li>Physics service exposes contact event hooks (begin/end listeners). Modules can subscribe to receive collision notifications by registering listeners with the physics service.</li>
+<li>For queries (raycasts, overlaps), prefer using read APIs rather than scanning all bodies in JS.</li>
+</ul>
+<p>User data</p>
+<ul>
+<li>Bodies support userData for attaching module domain info (entity ids, types). Keep userData small and serializable if you plan to snapshot/serialize state.</li>
+</ul>
+<p>Snapshot / read pattern</p>
+<ul>
+<li>Use readSnapshot() to capture a consistent view of bodies and their transforms for rendering or debug panels.</li>
+<li>Prefer readSnapshot for rendering to avoid races with concurrent write operations.</li>
+</ul>
+<p>Integration patterns</p>
+<ul>
+<li>Create physics bodies in start() once assets/initial state is ready.</li>
+<li>Drive physics stepping in update(dt), either by the physics module itself or via PHYSICS_STEP if external coordination is required.</li>
+<li>For smooth visuals, interpolate transforms in render(alpha) using the previous and current states from snapshots.</li>
+</ul>
+<p>Performance guidance</p>
+<ul>
+<li>Avoid creating/removing many bodies each frame; reuse where possible.</li>
+<li>Use simple collision shapes (boxes/circles) when adequate; complex convex polygons are more expensive.</li>
+<li>Batch queries where feasible and avoid expensive broadphase scans from JS on each frame.</li>
+</ul>
+<p>Testing tips</p>
+<ul>
+<li>Use deterministic seeds for random elements and call step(dt) in tests with controlled dt loops.</li>
+<li>For integration tests, stub heavy WASM or native dependencies if possible and validate high‑level behavior via ports.</li>
+</ul>
+<p>Where to look</p>
+<ul>
+<li>modules/physics-2d/service.ts for the Rapier‑backed implementation.</li>
+<li>modules/physics-2d/index.ts for example usage and debug overlays.</li>
+</ul>
+<p>Summary</p>
+<ul>
+<li>Treat the physics service as a deterministic simulation: use meters/radians/seconds, step explicitly, read snapshots for rendering, and keep mutations explicit and safe.</li>
+</ul>
+</div></div><div class="col-sidebar"><div class="page-menu"><div class="tsd-navigation settings"><details class="tsd-accordion"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg><h3>Settings</h3></summary><div class="tsd-accordion-details"><div class="tsd-filter-visibility"><span class="settings-label">Member Visibility</span><ul id="tsd-filter-options"><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-protected" name="protected"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Protected</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-inherited" name="inherited" checked/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>Inherited</span></label></li><li class="tsd-filter-item"><label class="tsd-filter-input"><input type="checkbox" id="tsd-filter-external" name="external"/><svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect class="tsd-checkbox-background" width="30" height="30" x="1" y="1" rx="6" fill="none"></rect><path class="tsd-checkbox-checkmark" d="M8.35422 16.8214L13.2143 21.75L24.6458 10.25" stroke="none" stroke-width="3.5" stroke-linejoin="round" fill="none"></path></svg><span>External</span></label></li></ul></div><div class="tsd-theme-toggle"><label class="settings-label" for="tsd-theme">Theme</label><select id="tsd-theme"><option value="os">OS</option><option value="light">Light</option><option value="dark">Dark</option></select></div></div></details></div><details open class="tsd-accordion tsd-page-navigation"><summary class="tsd-accordion-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg><h3>On This Page</h3></summary><div class="tsd-accordion-details"><a href="#physics-2d-api-guide"><span>Physics (2<wbr/>D) <wbr/>API <wbr/>Guide</span></a></div></details></div><div class="site-menu"><nav class="tsd-navigation"><a href="../modules.html">2d-platform-engine</a><ul class="tsd-small-nested-navigation" id="tsd-nav-container"><li>Loading...</li></ul></nav></div></div></div><footer><p class="tsd-generator">Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p></footer><div class="overlay"></div></body></html>
