@@ -12,7 +12,7 @@ const services = createServices()
 const mount = document.getElementById('mount')!
 
 const engine = new Engine({ width: 800, height: 600, mount, targetFPS: 60 })
-  .add(Physics2D())       // ← Module will create+register physics
+  .add(Physics2D())
   .add(InputModule())
   .add(RendererCanvas())
   .add(DemoBouncy())

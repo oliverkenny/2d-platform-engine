@@ -8,10 +8,11 @@
       html, body, #app { height: 100%; margin: 0; }
       body { background: #0f1020; color: #eaeaff; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
       #app { display: grid; place-items: center; }
-      .frame { width: 820px; padding: 10px; background: #15162b; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+      .frame { width: 800px; padding: 12px 30px; background: #15162b; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
       .title { margin: 0 0 8px; font-weight: 600; letter-spacing: .2px; }
       canvas { display:block; border-radius: 12px; background: #0b0d19; }
       .hint { opacity: .7; font-size: 12px; margin-top: 8px;}
+      .hint a { color: #eaeaff; text-decoration: underline; }
     </style>
   </head>
   <body>
@@ -19,7 +20,8 @@
       <div class="frame">
         <h1 class="title">Top-Down Engine Starter</h1>
         <div id="mount"></div>
-        <div class="hint">This page uses a tiny engine core with fixed-step updates and modular plugins.</div>
+        <!-- Show documentation link -->
+        <div class="hint">See the <a href="https://oliverkenny.github.io/2d-platform-engine/" target="_blank" rel="noopener">documentation</a> for more info.</div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
