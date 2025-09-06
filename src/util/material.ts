@@ -1,4 +1,4 @@
-import { Material } from "../engine/core/primitives/material";
+import { Material } from "../engine/core/primitives";
 
 export const Materials = {
     Grass: {

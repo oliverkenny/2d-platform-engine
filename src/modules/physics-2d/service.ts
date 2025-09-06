@@ -1,9 +1,8 @@
+import type { Vec2, Transform, BodyId, Material } from '../../engine/core/primitives'
 import type {
   PhysicsService,
   BodyOpts, BodyType, Shape, ShapeBox, ShapeCircle, ShapeCapsule,
 } from './types'
-import type { Vec2, Transform, BodyId } from '../../engine/core'
-import type { Material } from '../../engine/core/primitives'
 
 import RAPIER from "@dimforge/rapier2d-simd-compat";
 

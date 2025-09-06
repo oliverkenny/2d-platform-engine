@@ -1,4 +1,4 @@
-import type { Colour } from '../../engine/core'
+import type { Colour } from '../../engine/core/primitives'
 
 /**
  * Convert a Colour object to a CSS-compatible string.

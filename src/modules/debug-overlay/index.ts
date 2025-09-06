@@ -8,7 +8,7 @@ import type {
 } from '../../engine/core/Types'
 import { Colours } from '../../util/colour'
 import { DRAW_ALL } from '../../engine/core/tokens/draw'
-import { DrawServicePort } from '../../engine/core'
+import { DrawServicePort } from '../../engine/core/ports'
 import type { DebugOverlayOptions } from './types'
 import { generateId } from '../../util/ids'
 

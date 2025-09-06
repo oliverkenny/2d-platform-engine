@@ -1,4 +1,4 @@
-import type { PhysicsReadPort, PhysicsWritePort, PhysicsStepPort } from '../../engine/core'
+import type { PhysicsReadPort, PhysicsWritePort, PhysicsStepPort } from '../../engine/core/ports'
 import type { PhysicsService } from './types'
 
 const _read: PhysicsReadPort  = {} as PhysicsService

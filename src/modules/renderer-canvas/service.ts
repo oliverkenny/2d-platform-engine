@@ -1,4 +1,6 @@
-import type { Colour, DrawServicePort, SpriteOptions } from "../../engine/core"
+import type { Colour } from "../../engine/core/primitives"
+import type { DrawServicePort } from "../../engine/core/ports"
+import type { SpriteOptions } from "../../engine/core/Types"
 import { toCss } from "./util"
 
 export class DrawService implements DrawServicePort {

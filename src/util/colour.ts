@@ -1,4 +1,4 @@
-import type { Colour } from '../engine/core'
+import type { Colour } from '../engine/core/primitives'
 
 /**
  * Common colour constants expressed as normalised RGBA (0..1).

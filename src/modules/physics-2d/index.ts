@@ -1,13 +1,10 @@
 import type { Module, DebugPanel } from '../../engine/core/Types'
-import { PHYSICS_READ, PHYSICS_WRITE, PHYSICS_STEP } from '../../engine/core/tokens'
+import type { Colour, BodyId } from '../../engine/core/primitives'
+import type { PhysicsService, Shape, ShapeBox, ShapeCircle, ShapeCapsule } from './types'
+import type { DrawServicePort } from '../../engine/core/ports'
+import { PHYSICS_READ, PHYSICS_WRITE, PHYSICS_STEP, DRAW_ALL } from '../../engine/core/tokens'
 import { createRapierPhysicsService } from './service'
-import type { PhysicsService } from './types'
 
-// ⬇️ Adjust these imports if your paths differ
-import type { DrawServicePort } from '../../engine/core/ports/draw.all'
-import type { Colour } from '../../engine/core/primitives/colour'
-import type { Shape, ShapeBox, ShapeCircle, ShapeCapsule } from './types'
-import { BodyId, DRAW_ALL } from '../../engine/core'
 
 const WHITE: Colour = { r: 255, g: 255, b: 255, a: 255 }
 const CYAN:  Colour = { r:  64, g: 200, b: 255, a: 255 }

@@ -309,3 +309,22 @@ export type DebugPanel = {
   render(ctx: GameContext): string[],
   draw?(ctx: GameContext, draw: DrawServicePort): void,
 }
+
+
+/**
+ * Options for drawing sprites/images.
+ * @remarks
+ * Used by the {@link DrawServicePort.sprite} method.
+ */
+export interface SpriteOptions {
+  /** Optional source rect (sprite sheet) */
+  sx?: number; sy?: number; sw?: number; sh?: number
+  /** Origin/pivot (pixels), default (0,0) */
+  ox?: number; oy?: number
+  /** Scale factors, default 1 */
+  scaleX?: number; scaleY?: number
+  /** Rotation in radians, default 0 */
+  rotation?: number
+  /** Alpha transparency, 0..1, default 1 */
+  alpha?: number
+}

@@ -1,8 +1,5 @@
-import type {
-  PhysicsReadPort, PhysicsWritePort, PhysicsStepPort,
-  Vec2, BodyId
-} from '../../engine/core'
-import { Material } from '../../engine/core/primitives/material';
+import type { Vec2, BodyId, Material } from '../../engine/core/primitives'
+import type { PhysicsReadPort, PhysicsWritePort, PhysicsStepPort } from '../../engine/core/ports'
 
 /**
  * Physics Service API (2D)
