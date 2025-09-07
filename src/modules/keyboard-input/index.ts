@@ -1,30 +1,28 @@
-import type { Module, GameContext, EventBus, GameEvent } from '../../engine/core/Types'
-
 /**
- * DOM Keyboard Input Module.
+ * KeyboardInput module for handling DOM keyboard events and emitting game input events.
+ *
+ * This module listens for global `keydown` and `keyup` events, tracks the set of currently pressed keys,
+ * and emits corresponding events to the engine's event bus. It prevents auto-repeat floods by only emitting
+ * a keydown event once per physical key press.
+ *
+ * @module modules/keyboard-input
+ * @returns {Module} A module implementing keyboard input handling for the game engine.
  *
  * @remarks
- * - Listens for `keydown` and `keyup` events on the `window` object.
- * - Emits corresponding {@link GameEvent} messages (`'input/keydown'`, `'input/keyup'`)
- *   into the engine {@link EventBus}.
- * - Tracks pressed keys in a `Set` to suppress browser auto-repeat; only the
- *   first physical key press triggers an `'input/keydown'` event until it is released.
- * - Unsubscribes from DOM listeners and clears state on `destroy()`.
+ * - The module emits events of type `'input/keydown'` and `'input/keyup'` with the pressed key.
+ * - Listeners are attached to the global `window` object by default.
+ * - To scope input to a specific element, replace `window` with the desired DOM node.
  *
  * @example
- * ```ts
- * engine.add(InputModule())
- *
- * // Later, inside a module:
- * ctx.bus.on('input/keydown', e => {
- *   if (e.key === 'ArrowLeft') player.moveLeft()
- * })
- * ctx.bus.on('input/keyup', e => {
- *   if (e.key === 'ArrowLeft') player.stopMoving()
- * })
+ * ```typescript
+ * import KeyboardInput from './modules/keyboard-input'
+ * engine.use(KeyboardInput())
  * ```
  */
-export default function InputModule(): Module {
+
+import type { Module, GameContext, GameEvent } from '../../engine/core/Types'
+
+export default function KeyboardInput(): Module {
   /** Set of keys currently held down (prevents auto-repeat floods). */
   const down = new Set<string>()
 

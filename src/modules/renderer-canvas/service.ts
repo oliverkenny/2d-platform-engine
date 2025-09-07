@@ -31,6 +31,28 @@ export class DrawService implements DrawServicePort {
     this.ctx2d.fillText(msg, x, y)
   }
 
+  circle(x: number, y: number, r: number, fill?: Colour, stroke?: Colour, lineWidth: number = 1): void {
+    if (!Number.isFinite(r) || r <= 0) return;
+
+    this.ctx2d.save();
+    this.ctx2d.beginPath();
+    this.ctx2d.arc(x, y, r, 0, Math.PI * 2);
+  
+    if (fill != null) {
+      const css = toCss(fill);
+      if (css) this.ctx2d.fillStyle = css;
+      this.ctx2d.fill();
+    }
+    if (stroke != null) {
+      const css = toCss(stroke);
+      if (css) this.ctx2d.strokeStyle = css;
+      if (lineWidth !== this.ctx2d.lineWidth) this.ctx2d.lineWidth = lineWidth;
+      this.ctx2d.stroke();
+    }
+  
+    this.ctx2d.restore();
+  }
+
   /**
    * Draw an image (or a region of it) at (x,y) with optional transform.
    *

@@ -1,6 +1,6 @@
-import { DrawServicePort } from './ports/draw.all'
-import { BodyId, Camera2D, Space } from './primitives'
-import type { ServiceToken } from './Token'
+import { DrawServicePort } from "./ports/draw.all";
+import { BodyId, Camera2D, Space } from "./primitives";
+import type { ServiceToken } from "./Token";
 
 /**
  * Common engine contracts for modules to depend on.
@@ -15,13 +15,13 @@ export type EngineConfig = {
    * Logical canvas width in pixels.
    * Modules should use this (not `clientWidth`) for simulation bounds.
    */
-  width: number
+  width: number;
 
   /**
    * Logical canvas height in pixels.
    * Modules should use this (not `clientHeight`) for simulation bounds.
    */
-  height: number
+  height: number;
 
   /**
    * Target frames per second for the simulation/render loop.
@@ -30,20 +30,14 @@ export type EngineConfig = {
    * may run multiple updates per animation frame to catch up.
    * This value is advisory; browsers schedule actual frames.
    */
-  targetFPS?: number
-
-  /**
-   * Optional existing canvas to render into.
-   * If omitted, the renderer module may create/append one.
-   */
-  canvas?: HTMLCanvasElement
+  targetFPS?: number;
 
   /**
    * Optional DOM element to mount a created canvas into.
    * Ignored if `canvas` is provided.
    */
-  mount?: HTMLElement
-}
+  mount?: HTMLElement;
+};
 
 /**
  * Contract for all engine modules (plugins).
@@ -66,7 +60,7 @@ export interface Module {
    * Unique, namespaced identifier (e.g. `"renderer/canvas"`, `"audio/webaudio"`).
    * Helpful for debugging and telemetry.
    */
-  id: string
+  id: string;
 
   /**
    * Called once after the module is added, before `start()`.
@@ -77,7 +71,7 @@ export interface Module {
    * - Subscribe to events: `ctx.bus.on('level/loaded', ...)`
    * Avoid heavy network/asset work here; prefer `start()`.
    */
-  init?(ctx: GameContext): Promise<void> | void
+  init?(ctx: GameContext): Promise<void> | void;
 
   /**
    * Called once when the engine starts.
@@ -86,7 +80,7 @@ export interface Module {
    * Good place for asset loading and per-session initialization.
    * Runs after all modules' `init()` have completed.
    */
-  start?(ctx: GameContext): Promise<void> | void
+  start?(ctx: GameContext): Promise<void> | void;
 
   /**
    * Fixed-step simulation update.
@@ -98,7 +92,7 @@ export interface Module {
    * Deterministic logic should live here (movement, physics, AI).
    * May run 0..n times per animation frame depending on timing.
    */
-  update?(ctx: GameContext, dt: number): void
+  update?(ctx: GameContext, dt: number): void;
 
   /**
    * Render pass, called once per animation frame after all pending updates.
@@ -110,7 +104,7 @@ export interface Module {
    * @remarks
    * Do not mutate simulation state here—keep it to drawing only.
    */
-  render?(ctx: GameContext, alpha: number): void
+  render?(ctx: GameContext, alpha: number): void;
 
   /**
    * Optional centralized event handler.
@@ -119,13 +113,13 @@ export interface Module {
    * If you prefer, you can subscribe in `init()` with `ctx.bus.on(...)` instead.
    * This hook is called by the engine when events are emitted.
    */
-  onEvent?(ctx: GameContext, event: GameEvent): void
+  onEvent?(ctx: GameContext, event: GameEvent): void;
 
   /**
    * Cleanup hook invoked when the engine stops.
    * Unsubscribe listeners, release audio/graphics resources, etc.
    */
-  destroy?(): void
+  destroy?(): void;
 }
 
 /**
@@ -138,52 +132,104 @@ export type GameEvent =
    * DOM key pressed (keydown) translated into a game event.
    * - `key`: The KeyboardEvent `key` value (e.g., `"ArrowUp"`, `"a"`).
    */
-  | { type: 'input/keydown'; key: string }
+  | { type: "input/keydown"; key: string }
   /**
    * DOM key released (keyup) translated into a game event.
    * - `key`: The KeyboardEvent `key` value (e.g., `"ArrowUp"`, `"a"`).
    */
-  | { type: 'input/keyup'; key: string }
+  | { type: "input/keyup"; key: string }
+  /**
+   * Pointer (mouse/touch) button pressed.
+   * - `id`: Unique pointer ID (touch identifier or `1` for mouse).
+   * - `button`: Button index (0=left, 1=middle, 2=right).
+   * - `x`, `y`: Position in canvas pixels.
+   * - `buttons`: Bitfield of currently pressed buttons (1=left, 2=right, 4=middle).
+   */
+  | {
+      type: "input/pointerdown";
+      id: number;
+      button: number;
+      x: number;
+      y: number;
+      buttons: number;
+    }
+  /**
+   * Pointer (mouse/touch) button released.
+   * - `id`: Unique pointer ID (touch identifier or `1` for mouse).
+   * - `button`: Button index (0=left, 1=middle, 2=right).
+   * - `x`, `y`: Position in canvas pixels.
+   * - `buttons`: Bitfield of currently pressed buttons (1=left, 2=right, 4=middle).
+   */
+  | {
+      type: "input/pointerup";
+      id: number;
+      button: number;
+      x: number;
+      y: number;
+      buttons: number;
+    }
+  /**
+   * Pointer (mouse/touch) moved.
+   * - `id`: Unique pointer ID (touch identifier or `1` for mouse).
+   * - `x`, `y`: New position in canvas pixels.
+   * - `dx`, `dy`: Movement delta since last event.
+   * - `buttons`: Bitfield of currently pressed buttons (1=left, 2=right, 4=middle).
+   */
+  | {
+      type: "input/pointermove";
+      id: number;
+      x: number;
+      y: number;
+      dx: number;
+      dy: number;
+      buttons: number;
+    }
+  /**
+   * Pointer (mouse) wheel scrolled.
+   * - `x`, `y`: Position in canvas pixels.
+   * - `dx`, `dy`: Scroll delta (pixels, may be fractional).
+   */
+  | { type: "input/wheel"; x: number; y: number; dx: number; dy: number }
   /**
    * A level has been loaded and is ready.
    * - `name`: Logical level name or identifier.
    */
-  | { type: 'level/loaded'; name: string }
+  | { type: "level/loaded"; name: string }
   /**
    * Request to play a sound via the audio system.
    * - `sound`: Asset key for an audio buffer/clip.
    * - `loop`: Play in a loop (default: `false`).
    * - `volume`: Linear volume 0..1 (module may clamp).
    */
-  | { type: 'audio/play'; sound: string; loop?: boolean; volume?: number }
+  | { type: "audio/play"; sound: string; loop?: boolean; volume?: number }
   /**
    * The render surface has been resized.
    * - `width`: New logical width.
    * - `height`: New logical height.
    */
-  | { type: 'render/resize'; width: number; height: number }
+  | { type: "render/resize"; width: number; height: number }
   /**
    * Collision started event from the physics system.
    * - `bodyA`: ID of the first body.
    * - `bodyB`: ID of the second body.
    */
-  | { type: 'physics/collisionStart'; bodyA: number; bodyB: number }
+  | { type: "physics/collisionStart"; bodyA: number; bodyB: number }
   /**
    * Collision ended event from the physics system.
    * - `bodyA`: ID of the first body.
    * - `bodyB`: ID of the second body.
    */
-  | { type: 'physics/collisionEnd'; bodyA: number; bodyB: number }
+  | { type: "physics/collisionEnd"; bodyA: number; bodyB: number }
   /**
    * Register a debug panel to appear in the debug overlay.
    * - `panel`: The panel definition.
    */
-  | { type: 'debug/panel/register'; panel: DebugPanel }
+  | { type: "debug/panel/register"; panel: DebugPanel }
   /**
    * Unregister a debug panel by ID.
    * - `id`: The panel ID to remove.
    */
-  | { type: 'debug/panel/unregister'; id: PanelId }
+  | { type: "debug/panel/unregister"; id: PanelId };
 
 /**
  * Typed publish/subscribe event bus shared by all modules.
@@ -192,7 +238,7 @@ export interface EventBus {
   /**
    * Emit a game event to all current subscribers of the event's `type`.
    */
-  emit(ev: GameEvent): void
+  emit(ev: GameEvent): void;
 
   /**
    * Subscribe to a specific event `type`.
@@ -209,10 +255,10 @@ export interface EventBus {
    * off();
    * ```
    */
-  on<T extends GameEvent['type']>(
+  on<T extends GameEvent["type"]>(
     type: T,
     handler: (e: Extract<GameEvent, { type: T }>) => void
-  ): () => void
+  ): () => void;
 }
 
 /**
@@ -222,19 +268,19 @@ export interface TimeService {
   /**
    * Monotonic timestamp in milliseconds (typically `performance.now()`).
    */
-  now(): number
+  now(): number;
 
   /**
    * Fixed update step in seconds (e.g., `1/60`).
    * Controls the cadence of {@link Module.update}.
    */
-  fixedStep: number
+  fixedStep: number;
 
   /**
    * Accumulator of leftover fractional seconds carried between frames.
    * Advanced by the engine and consumed by fixed-step updates.
    */
-  accumulator: number
+  accumulator: number;
 }
 
 /**
@@ -249,14 +295,14 @@ export interface AssetService {
    * @param url - Image URL (relative or absolute).
    * @returns The decoded `HTMLImageElement`.
    */
-  loadImage(key: string, url: string): Promise<HTMLImageElement>
+  loadImage(key: string, url: string): Promise<HTMLImageElement>;
 
   /**
    * Retrieve a previously loaded image by key.
    * @param key - Asset key.
    * @returns The image or `undefined`.
    */
-  getImage(key: string): HTMLImageElement | undefined
+  getImage(key: string): HTMLImageElement | undefined;
 }
 
 /**
@@ -267,14 +313,14 @@ export interface AssetService {
  * concrete module implementation.
  */
 export interface Services {
-  time: TimeService
-  assets: AssetService
-  rng: () => number
+  time: TimeService;
+  assets: AssetService;
+  rng: () => number;
 
-  get<T>(token: ServiceToken<T>): T | undefined
-  getOrThrow<T>(token: ServiceToken<T>): T
-  set<T>(token: ServiceToken<T>, service: T): void
-  has<T>(token: ServiceToken<T>): boolean
+  get<T>(token: ServiceToken<T>): T | undefined;
+  getOrThrow<T>(token: ServiceToken<T>): T;
+  set<T>(token: ServiceToken<T>, service: T): void;
+  has<T>(token: ServiceToken<T>): boolean;
 }
 
 /**
@@ -287,29 +333,28 @@ export type GameContext = {
   /**
    * Engine configuration (canvas sizing / mounting).
    */
-  config: EngineConfig
+  config: EngineConfig;
 
   /**
    * Global event bus for decoupled communication.
    */
-  bus: EventBus
+  bus: EventBus;
 
   /**
    * Shared service registry (time, assets, custom services).
    */
-  services: Services
-}
+  services: Services;
+};
 
-export type PanelId = BodyId
+export type PanelId = BodyId;
 
 export type DebugPanel = {
-  id?: PanelId,
-  title: string,
-  order?: number,
-  render(ctx: GameContext): string[],
-  draw?(ctx: GameContext, draw: DrawServicePort): void,
-}
-
+  id?: PanelId;
+  title: string;
+  order?: number;
+  render(ctx: GameContext): string[];
+  draw?(ctx: GameContext, draw: DrawServicePort): void;
+};
 
 /**
  * Options for drawing sprites/images.
@@ -318,15 +363,23 @@ export type DebugPanel = {
  */
 export interface SpriteOptions {
   /** Optional source rect (sprite sheet) */
-  sx?: number; sy?: number; sw?: number; sh?: number
+  sx?: number;
+  sy?: number;
+  sw?: number;
+  sh?: number;
   /** Origin/pivot (pixels), default (0,0) */
-  ox?: number; oy?: number
+  ox?: number;
+  oy?: number;
   /** Scale factors, default 1 */
-  scaleX?: number; scaleY?: number
+  scaleX?: number;
+  scaleY?: number;
   /** Rotation in radians, default 0 */
-  rotation?: number
+  rotation?: number;
   /** Alpha transparency, 0..1, default 1 */
-  alpha?: number
+  alpha?: number;
 }
 
-export type RenderFn = (draw: DrawServicePort, cam?: Readonly<Camera2D>) => void;
+export type RenderFn = (
+  draw: DrawServicePort,
+  cam?: Readonly<Camera2D>
+) => void;

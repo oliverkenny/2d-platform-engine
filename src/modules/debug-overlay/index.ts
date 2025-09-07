@@ -1,4 +1,32 @@
-// debug/overlay.module.ts
+/**
+ * DebugOverlayModule provides a debug overlay system for the game engine.
+ * It allows registering multiple debug panels, toggling their visibility,
+ * and switching between them using configurable hotkeys.
+ *
+ * @module modules/debug-overlay
+ *
+ * @param {DebugOverlayOptions} [opts] - Configuration options for the debug overlay.
+ * @param {boolean} [opts.startVisible=false] - Whether the overlay starts visible.
+ * @param {string} [opts.hotkey='`'] - Hotkey to toggle overlay visibility.
+ * @param {Margin} [opts.margin] - Margin and line height for overlay text.
+ * @param {string} [opts.nextKey=']'] - Hotkey to switch to the next panel.
+ * @param {string} [opts.prevKey='['] - Hotkey to switch to the previous panel.
+ *
+ * @returns {Module} The debug overlay module instance.
+ *
+ * @remarks
+ * - Panels can be registered and unregistered at runtime via events.
+ * - The overlay displays information about registered panels and session duration.
+ * - The overlay is rendered on top of all other layers.
+ *
+ * @example
+ * ```typescript
+ * import { DebugOverlayModule } from './modules/debug-overlay'
+ * const debugOverlay = DebugOverlayModule({ startVisible: true })
+ * engine.registerModule(debugOverlay)
+ * ```
+ */
+
 import type {
   Module,
   GameContext,

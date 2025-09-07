@@ -41,6 +41,19 @@ export class Engine {
     const bus = createEventBus()
     const services = createServices()
     this.ctx = { config, bus, services }
+
+    // Broadcast bus events to all modules via onEvent()
+    const origEmit = bus.emit.bind(bus)
+    bus.emit = (e) => {
+      origEmit(e);
+      for (const m of this.modules) {
+        try {
+          m.onEvent?.(this.ctx, e)
+        } catch (err) {
+          console.error(`Error in module ${m.id} handling event`, e, err)
+        }
+      }
+    }
   }
 
   /**

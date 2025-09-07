@@ -66,6 +66,15 @@ export interface DrawServicePort {
   rect(x: number, y: number, w: number, h: number, color?: Colour): void
 
   /**
+   * Draw a circle centered at `(x, y)` with radius `r`.
+   *
+   * Units & orientation:
+   * - In `toUi(...)`: x,y,r are in **pixels**, origin top-left, y-down.
+   * - In `toWorld(...)`: x,y,r are in **meters** (Rapier world), y-up.
+   */
+  circle(x: number, y: number, r: number, fill?: Colour, stroke?: Colour, lineWidth?: number): void
+
+  /**
    * Draw text at `(x, y)`.
    *
    * Units & orientation:

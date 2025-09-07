@@ -1,3 +1,22 @@
+/**
+ * 2D Camera module for the game engine.
+ *
+ * Registers a camera service in the game context, providing position, rotation, zoom, and pixels-per-meter (ppm) configuration.
+ * Optionally supports automatic adjustment on device pixel ratio (DPR) or window size changes.
+ *
+ * @module modules/camera-2d
+ *
+ * @param cfg - Configuration for the camera module.
+ * @param cfg.initial - Initial camera state (position, rotation, zoom, ppm).
+ * @param cfg.autoResize - If true, listens for window resize events to adjust camera settings for DPR changes. Default is false.
+ *
+ * @returns A game engine module that initializes and registers the camera service.
+ *
+ * @remarks
+ * - The camera service is registered under three tokens: CAMERA_2D, CAMERA_2D_READ (readonly), and CAMERA_2D_WRITE (write-only).
+ * - By default, ppm is not changed on DPR changes. To lock scale to CSS pixels, uncomment the provided line in the resize handler.
+ */
+
 import type { Module, GameContext } from "../../engine/core/Types"
 import type { Camera2D } from "../../engine/core/primitives"
 import { CAMERA_2D, CAMERA_2D_READ, CAMERA_2D_WRITE } from "../../engine/core/tokens"
@@ -8,11 +27,6 @@ export interface Camera2DModuleConfig {
   autoResize?: boolean   // keep ppm stable on DPR/size changes? default: false
 }
 
-/**
- * Camera2D module
- * - Creates a shared Camera2DService and registers it under CAMERA_2D.
- * - Optionally wires resize handling.
- */
 export default function Camera2D(cfg: Camera2DModuleConfig = {}): Module {
   return {
     id: "camera/2d",

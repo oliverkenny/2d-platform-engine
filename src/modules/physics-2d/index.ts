@@ -1,10 +1,32 @@
+/**
+ * 2D Physics module for the engine.
+ *
+ * Provides physics simulation, debug rendering, and exposes physics services.
+ * Uses Rapier physics engine under the hood.
+ *
+ * @module modules/physics-2d
+ * 
+ * @remarks
+ * - Registers physics services for reading, writing, and stepping.
+ * - Provides a debug panel for inspecting simulation state and drawing body outlines.
+ * - Handles initialization, update (stepping), and cleanup.
+ *
+ * @example
+ * ```typescript
+ * import { Physics2D } from 'modules/physics-2d'
+ * engine.addModule(Physics2D())
+ * ```
+ *
+ * @see {@link PhysicsService}
+ * @see {@link DebugPanel}
+ */
+
 import type { Module, DebugPanel } from '../../engine/core/Types'
 import type { Colour, BodyId, Vec2 } from '../../engine/core/primitives'
 import type { PhysicsService, Shape, ShapeBox, ShapeCircle, ShapeCapsule } from './types'
 import type { DrawServicePort, Camera2DPort } from '../../engine/core/ports'
 import { PHYSICS_READ, PHYSICS_WRITE, PHYSICS_STEP, DRAW_ALL, CAMERA_2D } from '../../engine/core/tokens'
 import { createRapierPhysicsService } from './service'
-
 const WHITE: Colour = { r: 1, g: 1, b: 1, a: 1 }
 const CYAN:  Colour = { r: 0.25, g: 0.78, b: 1, a: 1 }
 

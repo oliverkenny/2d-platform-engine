@@ -1,4 +1,24 @@
-// modules/render-coordinator/index.ts
+/**
+ * The RenderCoordinator module orchestrates the rendering process by managing multiple render passes.
+ * It provides a queue-based system for modules to enqueue render items, and executes each pass in order,
+ * optionally clearing the surface before or after each pass.
+ *
+ * @module modules/render-coordinator
+ *
+ * @remarks
+ * - Registers a render queue service for other modules to enqueue render items.
+ * - Supports configurable render passes, each with its own space ("ui" or "world") and optional camera.
+ * - Clears the drawing surface at the start of each frame or before specific passes, as configured.
+ * - Handles both world-space and UI-space rendering, using the appropriate camera and draw context.
+ *
+ * @param cfg - Optional partial configuration for the RenderCoordinator.
+ * @returns A Module implementing the rendering coordination logic.
+ *
+ * @see RenderCoordinatorConfig
+ * @see RenderPassConfig
+ * @see DEFAULT_PASSES
+ */
+
 import type { Module } from "../../engine/core/Types";
 import type { Camera2DReadPort, DrawServicePort } from "../../engine/core/ports";
 import type { Camera2D, Space } from "../../engine/core/primitives";
@@ -17,7 +37,6 @@ export default function RenderCoordinator(cfg?: Partial<RenderCoordinatorConfig>
     id: "render/coordinator",
 
     init(ctx) {
-      console.log("RenderCoordinator: passes", passes);
       // Register the queue service so modules can enqueue
       ctx.services.set(RENDER_QUEUE, rq);
 
