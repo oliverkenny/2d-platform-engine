@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Platform Racing — Main Menu (Wireframe)</title>
+<style>
+:root{
+  --bg:#f7f9fc; --bg2:#eef3f8; --card:#ffffff; --line:#e5eaf2;
+  --text:#0f172a; --muted:#5b6577; --accent:#2563eb; --accent2:#7c3aed;
+  --good:#16a34a; --warn:#ca8a04; --danger:#dc2626; --radius:16px;
+  --shadow:0 18px 40px rgba(16,24,40,.08), 0 2px 6px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+  color:var(--text); background:linear-gradient(180deg,var(--bg),var(--bg2));}
+a{color:inherit;text-decoration:none}
+.shell{height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:12px;padding:14px}
+.topbar,.footer{display:flex;align-items:center;justify-content:space-between;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;padding:10px 14px;box-shadow:var(--shadow)}
+.logo{display:flex;gap:10px;align-items:center;font-weight:800}
+.logo svg{width:26px;height:26px;color:var(--accent)}
+.row{display:flex;gap:8px;align-items:center}.muted{color:var(--muted)} .sep{width:1px;height:22px;background:var(--line)}
+.search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:#fff;width:min(440px,42vw)}
+.search input{border:0;outline:none;width:100%}
+.iconbtn{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
+.main{display:grid;grid-template-columns:360px 1fr 360px;gap:14px;min-height:0}
+@media (max-width:1100px){.main{grid-template-columns:1fr;grid-auto-rows:min-content}}
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card{padding:16px}.card h3{margin:0 0 10px 0;font-size:13px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.pill{font-size:12px;padding:5px 8px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:#fff}
+.sbtn{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:600;cursor:pointer}
+.left,.right{display:flex;flex-direction:column;gap:12px}
+.friend{display:flex;align-items:center;justify-content:space-between;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.dot{width:10px;height:10px;border-radius:50%;background:#16a34a}
+.mode{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;margin-top:8px}
+.center{display:grid;grid-template-rows:auto auto 1fr;gap:12px}
+.profile{display:grid;grid-template-columns:120px 1fr auto;gap:16px;align-items:center}
+.avatar{width:120px;height:120px;border-radius:22px;background:linear-gradient(135deg,#e2e8f0,#f8fafc);border:1px solid var(--line);display:grid;place-items:center}
+.avatar svg{width:64px;height:64px;color:#475569}
+.progress{height:10px;background:#f1f5f9;border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+.bar{height:100%;width:62%;background:linear-gradient(90deg,#22c55e,#60a5fa)}
+.playcard{display:flex;align-items:center;justify-content:space-between;padding:16px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#f8fbff)}
+.cta{--h:58px;display:inline-grid;place-items:center;padding:0 32px;height:var(--h);background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:calc(var(--h)/2);font-weight:900;font-size:clamp(18px,2.8vw,26px);color:#fff;cursor:pointer}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;display:none}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center}
+.modal .box{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:20px;min-width:min(90vw,420px)}
+.badge{padding:6px 10px;background:#e0e7ff;border:1px solid #c7d2fe;border-radius:999px;color:#3730a3;font-weight:700}
+.feed{display:grid;gap:10px}
+.post{display:grid;grid-template-columns:46px 1fr;gap:10px;align-items:start;padding:10px;border:1px solid var(--line);border-radius:12px}
+.pfp{width:46px;height:46px;border-radius:50%;background:#e2e8f0;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 11 14 9 22 21 8 13 8 13 2"></polygon></svg>
+      <span>Platform Racing</span><span class="muted">• Menu</span>
+    </div>
+    <div class="row">
+      <div class="search"><span class="muted">🔎</span><input placeholder="Search friends, clubs, maps…"/></div>
+      <span class="sep"></span>
+      <button class="iconbtn" id="btnNotif" title="Notifications">🔔</button>
+      <button class="iconbtn" id="btnSettings" title="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Left: Social -->
+    <section class="left panel card">
+      <h3>Party</h3>
+      <div class="friend"><div class="row"><span class="dot"></span><strong>NovaRider</strong><span class="pill">Leader</span></div><div class="row"><button class="sbtn" id="copyInvite">Copy Invite</button></div></div>
+      <div class="friend"><div class="row"><span class="dot"></span>KiloFox</div><span class="pill">In Lobby</span></div>
+      <div class="friend"><div class="row"><span class="dot"></span>PixelPunk</div><span class="pill">Designing Map</span></div>
+      <h3 style="margin-top:14px">Friends Online</h3>
+      <div class="friend"><div class="row"><span class="dot"></span>SkyeJet</div><button class="sbtn invite">Invite</button></div>
+      <div class="friend"><div class="row"><span class="dot"></span>EchoMax</div><button class="sbtn invite">Invite</button></div>
+      <div class="friend"><div class="row"><span class="dot"></span>Vanta</div><button class="sbtn invite">Invite</button></div>
+    </section>
+
+    <!-- Center: Personalisation + Play -->
+    <section class="center">
+      <div class="panel card">
+        <h3>Your Pilot</h3>
+        <div class="profile">
+          <div class="avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 12a5 5 0 100-10 5 5 0 000 10z"/><path d="M4 22a8 8 0 0116 0"/></svg></div>
+          <div>
+            <strong>NovaRider</strong>
+            <div class="muted">Lvl 23 • Augments: Glide, Wall‑stick</div>
+            <div class="progress"><div class="bar" id="seasonBar"></div></div>
+            <div class="row" style="margin-top:6px"><button class="sbtn">Customize</button><button class="sbtn">Augments</button><button class="sbtn">Badges</button></div>
+          </div>
+          <div class="col"><span class="muted">Status</span><div class="row"><span class="pill">Looking for Party</span><span class="pill">Controller</span></div></div>
+        </div>
+      </div>
+      <div class="panel playcard">
+        <div class="col">
+          <div class="row" style="flex-wrap:wrap;gap:8px">
+            <span class="pill" id="modeLabel">Mode: Quick Play</span>
+            <span class="pill">Map Vote On</span>
+            <span class="pill">Party: 3/4</span>
+            <span class="pill">Cross‑play</span>
+          </div>
+          <span class="muted" style="margin-top:6px">Tip: Queue for Ranked in the Club Hall.</span>
+        </div>
+        <button class="cta" id="playNow">Play Now</button>
+      </div>
+
+      <div class="panel card">
+        <h3>Feed</h3>
+        <div class="feed">
+          <div class="post"><div class="pfp"></div><div><strong>@Luma</strong><div class="muted">published <em>Neon Freeway v2</em></div><div class="row" style="margin-top:6px"><a class="sbtn" href="editor.html">Remix</a><a class="sbtn" href="game.html">Play</a></div></div></div>
+          <div class="post"><div class="pfp"></div><div><strong>@MakerGuild</strong><div class="muted">Weekly map jam starts in 2h</div><div class="row" style="margin-top:6px"><button class="sbtn">Join Jam</button></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Modes & News -->
+    <section class="right panel card">
+      <h3>Play Modes</h3>
+      <div class="mode" data-mode="Quick Play"><span><strong>Quick Play</strong></span><span class="pill">1–3 min</span></div>
+      <div class="mode" data-mode="Ranked"><span><strong>Ranked</strong></span><span class="pill">No RNG</span></div>
+      <div class="mode" data-mode="Casual"><span><strong>Casual</strong></span><span class="pill">Fun Mods</span></div>
+      <div class="mode" data-mode="Private Room"><span><strong>Private Room</strong></span><span class="pill">Invite</span></div>
+
+      <h3 style="margin-top:14px">News</h3>
+      <div class="post"><div class="pfp"></div><div><strong>Season 4: Neon Drift</strong><div class="muted">New skins and trials</div></div></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="row"><span class="badge" id="partyBadge">Party: 3/4</span><span class="muted">Invite code: <strong id="inviteCode">7F2‑K9A</strong></span></div>
+    <div class="row"><a class="sbtn" href="index.html">Menu</a><a class="sbtn" href="editor.html">Editor</a><a class="sbtn" href="game.html">Game UI</a></div>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="modal" id="matchModal">
+  <div class="box">
+    <h2 style="margin:0 0 8px 0">Matchmaking…</h2>
+    <div class="muted" id="mmStatus">Searching players</div>
+    <div class="row" style="margin-top:12px; justify-content:flex-end">
+      <button class="sbtn" id="cancelMM">Cancel</button>
+      <a class="sbtn" id="goGame" href="game.html" style="display:none;background:#111827;color:#fff;border-color:#111827">Join Match</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const toast=(msg)=>{const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',1500)};
+
+document.querySelectorAll('.invite').forEach(btn=>btn.addEventListener('click',()=>toast('Invite sent ✅')));
+document.getElementById('copyInvite').addEventListener('click',()=>{
+  const code=document.getElementById('inviteCode').textContent;
+  navigator.clipboard?.writeText?.(code);
+  toast('Invite code copied: '+code);
+});
+
+// Mode switch updates label
+document.querySelectorAll('.mode').forEach(m=>m.addEventListener('click',()=>{
+  const mode=m.dataset.mode;
+  document.getElementById('modeLabel').textContent='Mode: '+mode;
+  toast('Selected '+mode);
+}));
+
+// Play Now → fake matchmaking flow
+const modal=document.getElementById('matchModal');
+document.getElementById('playNow').addEventListener('click',()=>{
+  modal.style.display='flex';
+  const status=document.getElementById('mmStatus');
+  const join=document.getElementById('goGame');
+  status.textContent='Searching players';
+  join.style.display='none';
+  setTimeout(()=>status.textContent='Connecting to server…',900);
+  setTimeout(()=>{status.textContent='Match found!'; join.style.display='inline-grid';},1800);
+});
+document.getElementById('cancelMM').addEventListener('click',()=>modal.style.display='none');
+</script>
+</body>
+</html>

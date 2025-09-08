@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Level Editor — Wireframe</title>
+<style>
+:root{--bg:#f7f9fc;--pane:#ffffff;--line:#d9e1ec;--text:#0f172a;--muted:#667085;--accent:#2563eb;--accent2:#7c3aed;--radius:16px;--shadow:0 16px 40px rgba(16,24,40,.08), 0 2px 6px rgba(16,24,40,.06)}
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--text);background:linear-gradient(180deg,var(--bg),#eef3f8)}
+.shell{height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:10px;padding:12px}
+.bar{display:flex;align-items:center;justify-content:space-between;background:var(--pane);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)}
+.main{display:grid;grid-template-columns:300px 1fr 320px;gap:10px;min-height:0}
+@media (max-width:1200px){.main{grid-template-columns:260px 1fr;grid-template-rows:1fr 360px;grid-template-areas:'left center' 'right right'}.right{grid-area:right}}
+.pane{background:var(--pane);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;min-height:0}
+.col{display:flex;flex-direction:column}.row{display:flex;gap:8px;align-items:center}.muted{color:var(--muted)} .chip{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:12px}
+.toggle{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}.toggle button{padding:8px 12px;background:#fff;border:0;cursor:pointer}.toggle button.active{background:#eef2ff;color:#3730a3;font-weight:700}
+.left{padding:12px;gap:12px}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
+.search{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.search input{border:0;outline:none;width:100%}
+.palette{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tile{height:64px;border:2px dashed var(--line);border-radius:12px;display:grid;place-items:center;color:#475569;background:#f8fafc;cursor:pointer}.tile.sel{outline:2px solid var(--accent)}
+.layers{margin-top:auto;border-top:1px solid var(--line);padding-top:12px}.layer{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;margin-top:8px;cursor:pointer}
+.center{position:relative;overflow:hidden}.rulers{position:absolute;inset:0;pointer-events:none}
+.ruler-h{position:absolute;left:40px;right:0;top:0;height:24px;background:repeating-linear-gradient(90deg,#eef2f7 0 20px,#e6edf6 20px 40px);border-bottom:1px solid var(--line)}
+.ruler-v{position:absolute;top:24px;bottom:0;left:0;width:40px;background:repeating-linear-gradient(180deg,#eef2f7 0 20px,#e6edf6 20px 40px);border-right:1px solid var(--line)}
+.canvas{position:absolute;top:24px;left:40px;right:0;bottom:0;background:linear-gradient(90deg, rgba(2,6,23,.03) 1px, transparent 1px),linear-gradient(180deg, rgba(2,6,23,.03) 1px, transparent 1px);background-size:40px 40px}
+.guide{position:absolute;top:40px;left:40px;right:40px;bottom:40px;border:2px dashed #cbd5e1;border-radius:12px}
+.toolbar{position:absolute;top:14px;left:56px;display:flex;gap:8px}.tool{padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;gap:8px}
+.right{padding:12px;gap:12px}.fieldset{border:1px dashed var(--line);border-radius:12px;padding:12px}.fieldset legend{padding:0 6px;color:var(--muted);font-size:12px}
+.input{display:grid;grid-template-columns:1fr 90px;gap:10px;align-items:center;margin:6px 0}.input input,.input select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff}
+.bottom{display:flex;align-items:center;justify-content:space-between}
+.timeline{display:flex;align-items:center;gap:8px;overflow:auto}.event{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px;background:#fff;white-space:nowrap}
+.action{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer}.primary{background:linear-gradient(90deg,#2563eb,#7c3aed);color:#fff;border:none}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#111827;color:#fff;padding:10px 14px;border-radius:10px;display:none}
+.nav{display:flex;gap:8px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="bar">
+    <div class="nav">
+      <a class="action" href="index.html">Menu</a>
+      <a class="action" href="editor.html">Editor</a>
+      <a class="action" href="game.html">Game UI</a>
+    </div>
+    <div class="toggle" aria-label="Mode">
+      <button class="active" id="simpleBtn">Simple</button>
+      <button id="advBtn">Advanced</button>
+    </div>
+    <div class="row">
+      <button class="action" id="undo">Undo ⌘Z</button>
+      <button class="action" id="redo">Redo ⇧⌘Z</button>
+      <button class="action" id="snap">Snap: 40px</button>
+      <button class="action" id="playtest">Playtest ▶︎</button>
+      <button class="action primary" id="publish">Save & Publish</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <aside class="pane left col">
+      <div class="tabs" id="tabs">
+        <button class="tab" data-tab="Blocks">Blocks</button>
+        <button class="tab" data-tab="Hazards">Hazards</button>
+        <button class="tab" data-tab="Power-ups">Power‑ups</button>
+        <button class="tab" data-tab="Logic">Logic</button>
+      </div>
+      <div class="search"><span class="muted">🔎</span><input placeholder="Search assets…"/></div>
+      <div class="palette" id="palette"></div>
+
+      <div class="layers">
+        <div class="row" style="justify-content:space-between">
+          <h4 style="margin:0">Layers</h4>
+          <button class="action" id="addLayer">+ Add</button>
+        </div>
+        <div id="layerList">
+          <div class="layer"><span>Foreground</span><span class="muted">👁️</span></div>
+          <div class="layer"><span>Gameplay</span><span class="muted">👁️</span></div>
+          <div class="layer"><span>Background</span><span class="muted">👁️</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="pane center">
+      <div class="rulers"><div class="ruler-h"></div><div class="ruler-v"></div></div>
+      <div class="toolbar">
+        <button class="tool" data-tool="Select">Select (V)</button>
+        <button class="tool" data-tool="Brush">Brush (B)</button>
+        <button class="tool" data-tool="Eraser">Eraser (E)</button>
+        <button class="tool" data-tool="Hand">Hand (Space)</button>
+        <button class="tool" data-tool="Rect">Rectangle (R)</button>
+        <button class="tool" data-tool="Logic">Logic (L)</button>
+        <span class="chip" id="statusChip">Tool: Select</span>
+      </div>
+      <div class="canvas" id="canvas">
+        <div class="guide"></div>
+      </div>
+      <div class="zoom">
+        <button class="action" id="zOut">−</button>
+        <span class="chip" id="zoomVal">100%</span>
+        <button class="action" id="zIn">＋</button>
+      </div>
+    </section>
+
+    <aside class="pane right col" style="padding:12px;gap:12px">
+      <fieldset class="fieldset">
+        <legend>Object</legend>
+        <div class="input"><label>Name</label><input id="objName" value="Block"/></div>
+        <div class="input"><label>Type</label>
+          <select id="objType"><option>Solid</option><option>One-way</option><option>Breakable</option></select>
+        </div>
+        <div class="input"><label>Friction</label><input id="objFric" value="0.8"/></div>
+        <div class="input"><label>Bounce</label><input id="objBnc" value="0.2"/></div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>Transform</legend>
+        <div class="input"><label>X</label><input id="tx" value="480"/></div>
+        <div class="input"><label>Y</label><input id="ty" value="320"/></div>
+        <div class="input"><label>W</label><input id="tw" value="160"/></div>
+        <div class="input"><label>H</label><input id="th" value="80"/></div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>Level Settings</legend>
+        <div class="input"><label>Gravity</label><input id="grav" value="9.81"/></div>
+        <div class="input"><label>Time Limit</label><input id="tl" value="120s"/></div>
+      </fieldset>
+    </aside>
+  </div>
+
+  <div class="bar bottom">
+    <div class="row"><strong>Logic Flow</strong><span class="chip">Snap: 0.5s</span><button class="action" id="addEvent">+ Add Trigger</button></div>
+    <div class="timeline" id="timeline">
+      <div class="event">On Start → Open Gate A</div>
+      <div class="event">On Lap1 → Spawn Boost</div>
+      <div class="event">On Finish → Fireworks</div>
+    </div>
+    <div class="row"><a class="action" href="index.html">Back to Menu</a></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const toast=(m)=>{const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',1400)};
+
+// Tabs -> palette items
+const data={
+  "Blocks":["Block","Slope","Spring","Boost","Pad","Crate","Checkpoint"],
+  "Hazards":["Spike","Laser","Saw","Lava","Mine"],
+  "Power-ups":["Shield","Rocket","Dash","Magnet","Grapple"],
+  "Logic":["Trigger","Mover","Timer","Teleport","Checkpoint"]
+};
+const palette=document.getElementById('palette');
+function render(tab="Blocks"){
+  palette.innerHTML="";
+  data[tab].forEach((name,i)=>{
+    const d=document.createElement('div');d.className='tile'+(i===0?' sel':'');d.textContent=name;
+    d.onclick=()=>{document.querySelectorAll('.tile').forEach(t=>t.classList.remove('sel'));d.classList.add('sel');toast(name+' selected')};
+    palette.appendChild(d);
+  });
+}
+render();
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>render(b.dataset.tab));
+
+// tools
+document.querySelectorAll('.tool').forEach(b=>b.onclick=()=>{document.getElementById('statusChip').textContent='Tool: '+b.dataset.tool;toast(b.dataset.tool+' tool')});
+
+// zoom
+let z=100;
+document.getElementById('zIn').onclick=()=>{z=Math.min(200,z+10);document.getElementById('zoomVal').textContent=z+'%'};
+document.getElementById('zOut').onclick=()=>{z=Math.min(200,Math.max(25,z-10));document.getElementById('zoomVal').textContent=z+'%'};
+
+// playtest / publish
+document.getElementById('playtest').onclick=()=>toast('Launching playtest… ▶');
+document.getElementById('publish').onclick=()=>toast('Saved & published ✅');
+
+// add layer / event
+document.getElementById('addLayer').onclick=()=>{const li=document.createElement('div');li.className='layer';li.innerHTML='<span>Layer '+(document.querySelectorAll(\".layer\").length+1)+'</span><span class=\"muted\">👁️</span>';document.getElementById('layerList').appendChild(li)};
+document.getElementById('addEvent').onclick=()=>{const ev=document.createElement('div');ev.className='event';ev.textContent='Checkpoint '+(Math.floor(Math.random()*5)+1)+' → Spawn Boost';document.getElementById('timeline').appendChild(ev)};
+
+// mode toggle
+document.getElementById('simpleBtn').onclick=()=>{toast('Simple mode');document.getElementById('simpleBtn').classList.add('active');document.getElementById('advBtn').classList.remove('active')};
+document.getElementById('advBtn').onclick=()=>{toast('Advanced mode');document.getElementById('advBtn').classList.add('active');document.getElementById('simpleBtn').classList.remove('active')};
+</script>
+</body>
+</html>
