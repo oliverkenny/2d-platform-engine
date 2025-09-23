@@ -14,6 +14,8 @@ export const Colours = {
   /** Solid black (0,0,0,1). */
   Black: { r: 0, g: 0, b: 0, a: 1 } as Colour,
 
+  DarkGrey: { r: 0.25, g: 0.25, b: 0.25, a: 1 } as Colour,
+
   /** Solid red (1,0,0,1). */
   Red: { r: 1, g: 0, b: 0, a: 1 } as Colour,
 
