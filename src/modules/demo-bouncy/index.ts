@@ -112,7 +112,7 @@ export default function DemoBouncy(): Module {
         userData: { tag: 'crate' },
       })
 
-      const addStaticPlatform = (xPx: number, yPx: number, wPx: number, hPx: number, colour: Colour = Colours.Brown) => {
+      const addStaticPlatform = (xPx: number, yPx: number, wPx: number, hPx: number, colour: Colour = Colours.BROWN) => {
         const hx = pxToMeters(wPx / 2)
         const hy = pxToMeters(hPx / 2)
         const body = physics_write.createBody({
@@ -141,7 +141,7 @@ export default function DemoBouncy(): Module {
         })
         const t = physics_read.getTransform(body)!
         movers.push({
-          body, hx, hy, colour: opts.colour ?? Colours.DarkGrey,
+          body, hx, hy, colour: opts.colour ?? Colours.DARK_GREY,
           originX: t.x, originY: t.y,
           axis: opts.axis,
           amplitudeM: pxToMeters(opts.amplitudePx),
@@ -261,9 +261,9 @@ export default function DemoBouncy(): Module {
           const h = 8
           const x = Math.floor((ctx.config.width - w) / 2)
           const y = Math.floor((ctx.config.height - h) / 2)
-          d.rect(x, y, w, h, Colours.Black)
-          d.rect(x, y, Math.max(1, Math.floor(w * progress)), h, Colours.Blue)
-          d.text(`Loading ${(progress * 100) | 0}%`, x, y - 10, Colours.White)
+          d.rect(x, y, w, h, Colours.BLACK)
+          d.rect(x, y, Math.max(1, Math.floor(w * progress)), h, Colours.BLUE)
+          d.text(`Loading ${(progress * 100) | 0}%`, x, y - 10, Colours.WHITE)
         }, 1000)
         return
       }
@@ -284,7 +284,7 @@ export default function DemoBouncy(): Module {
         for (const b of [boxBody, boxBody2]) {
           if (!b) continue
           const t = physics_read.getTransform(b)
-          if (t) d.rect(t.x - 0.4, t.y - 0.4, 0.8, 0.8, Colours.Blue)
+          if (t) d.rect(t.x - 0.4, t.y - 0.4, 0.8, 0.8, Colours.BLUE)
         }
 
         for (const p of staticPlatforms) {
@@ -299,7 +299,7 @@ export default function DemoBouncy(): Module {
 
         if (groundBody && physics_read) {
           const g = physics_read.getTransform(groundBody)!
-          d.rect(g.x - groundHalfWidthM, g.y - 0.16, groundHalfWidthM * 2, 0.32, Colours.Black)
+          d.rect(g.x - groundHalfWidthM, g.y - 0.16, groundHalfWidthM * 2, 0.32, Colours.BLACK)
         }
       }, 10)
 
@@ -307,7 +307,7 @@ export default function DemoBouncy(): Module {
         if (playerBody && physics_read) {
           const t = physics_read.getTransform(playerBody)!
           const s = d.toScreen({ x: t.x, y: t.y }, cam)
-          d.text('Player', s.x - 16, s.y - 10, Colours.White)
+          d.text('Player', s.x - 16, s.y - 10, Colours.WHITE)
         }
       }, 100)
     }

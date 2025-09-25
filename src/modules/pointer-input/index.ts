@@ -267,9 +267,9 @@ export default function PointerInput(opts: Options = {}): Module {
   
     draw.toUi(() => {
       // outer ring
-      draw.circle(cx, cy, 12, undefined, Colours.White, 3);
+      draw.circle(cx, cy, 12, undefined, Colours.WHITE, 3);
       // inner dot
-      draw.circle(cx, cy, 4, Colours.Black);
+      draw.circle(cx, cy, 4, Colours.BLACK);
     });
   }
   

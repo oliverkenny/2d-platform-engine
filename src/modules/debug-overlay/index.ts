@@ -178,7 +178,7 @@ export function DebugOverlayModule(opts: DebugOverlayOptions = {}): Module {
 
         const writeLines = (lines: string[]) => {
           for (const line of lines) {
-            d.text(line, x, y, Colours.White)
+            d.text(line, x, y, Colours.WHITE)
             y += margin.line
           }
         }

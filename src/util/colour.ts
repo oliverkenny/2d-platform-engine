@@ -8,31 +8,18 @@ import type { Colour } from '../engine/core/primitives'
  * manually (`{ r: 1, g: 0, b: 0 }`) or use {@link ColourUtil}.
  */
 export const Colours = {
-  /** Solid white (1,1,1,1). */
-  White: { r: 1, g: 1, b: 1, a: 1 } as Colour,
-
-  /** Solid black (0,0,0,1). */
-  Black: { r: 0, g: 0, b: 0, a: 1 } as Colour,
-
-  DarkGrey: { r: 0.25, g: 0.25, b: 0.25, a: 1 } as Colour,
-
-  /** Solid red (1,0,0,1). */
-  Red: { r: 1, g: 0, b: 0, a: 1 } as Colour,
-
-  /** Solid green (0,1,0,1). */
-  Green: { r: 0, g: 1, b: 0, a: 1 } as Colour,
-
-  /** Solid blue (0,0,1,1). */
-  Blue: { r: 0, g: 0, b: 1, a: 1 } as Colour,
-
-  /** Solid yellow (1,1,0,1). */
-  Yellow: { r: 1, g: 1, b: 0, a: 1 } as Colour,
-
-  /** Solid brown (0.5, 0.25, 0, 1). */
-  Brown: { r: 0.5, g: 0.25, b: 0, a: 1 } as Colour,
-
-  /** Transparent (0,0,0,0). */
-  Transparent: { r: 0, g: 0, b: 0, a: 0 } as Colour,
+  WHITE: { r: 1, g: 1, b: 1, a: 1 } as Colour,
+  BLACK: { r: 0, g: 0, b: 0, a: 1 } as Colour,
+  DARK_GREY: { r: 0.25, g: 0.25, b: 0.25, a: 1 } as Colour,
+  RED: { r: 1, g: 0, b: 0, a: 1 } as Colour,
+  GREEN: { r: 0, g: 1, b: 0, a: 1 } as Colour,
+  BLUE: { r: 0, g: 0, b: 1, a: 1 } as Colour,
+  YELLOW: { r: 1, g: 1, b: 0, a: 1 } as Colour,
+  BROWN: { r: 0.5, g: 0.25, b: 0, a: 1 } as Colour,
+  CYAN: { r: 0, g: 1, b: 1, a: 1 } as Colour,
+  MAGENTA: { r: 1, g: 0, b: 1, a: 1 } as Colour,
+  ORANGE: { r: 1, g: 0.5, b: 0, a: 1 } as Colour,
+  TRANSPARENT: { r: 0, g: 0, b: 0, a: 0 } as Colour,
 }
 
 /**

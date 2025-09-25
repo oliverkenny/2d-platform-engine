@@ -27,8 +27,7 @@ import type { PhysicsService, Shape, ShapeBox, ShapeCircle, ShapeCapsule } from 
 import type { DrawServicePort, Camera2DPort } from '../../engine/core/ports'
 import { PHYSICS_READ, PHYSICS_WRITE, PHYSICS_STEP, DRAW_ALL, CAMERA_2D } from '../../engine/core/tokens'
 import { createRapierPhysicsService } from './service'
-const WHITE: Colour = { r: 1, g: 1, b: 1, a: 1 }
-const CYAN:  Colour = { r: 0.25, g: 0.78, b: 1, a: 1 }
+import { Colours } from '../../util/colour'
 
 // ---------------------------------------------------------------------------
 // Geometry helpers (world space, y-up)
@@ -124,7 +123,7 @@ function drawBodyOutline(
       const aabbWorld = shapeWorldAABB(shape, body.t.x, body.t.y, body.t.angle)
       if (aabbWorld) {
         const rectPx = aabbWorldToScreenRect(draw, camVal, aabbWorld)
-        strokeRectPx(draw, rectPx.x, rectPx.y, rectPx.w, rectPx.h, thicknessPx, CYAN)
+        strokeRectPx(draw, rectPx.x, rectPx.y, rectPx.w, rectPx.h, thicknessPx, Colours.CYAN)
       }
     }
   } else {
@@ -132,12 +131,12 @@ function drawBodyOutline(
     const s = 0.3
     const aabbWorld = { x: body.t.x - s * 0.5, y: body.t.y - s * 0.5, w: s, h: s }
     const rectPx = aabbWorldToScreenRect(draw, camVal, aabbWorld)
-    strokeRectPx(draw, rectPx.x, rectPx.y, rectPx.w, rectPx.h, thicknessPx, WHITE)
+    strokeRectPx(draw, rectPx.x, rectPx.y, rectPx.w, rectPx.h, thicknessPx, Colours.WHITE)
   }
 
   // Label near center
   const label = draw.toScreen({ x: body.t.x, y: body.t.y }, camVal as any)
-  draw.text(String(body.id), label.x + 6, label.y - 6, WHITE)
+  draw.text(String(body.id), label.x + 6, label.y - 6, Colours.WHITE)
 }
 
 // ---------------------------------------------------------------------------
