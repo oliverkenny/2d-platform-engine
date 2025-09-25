@@ -1,205 +1,248 @@
+// src/modules/physics-2d/index.ts
+
 /**
- * 2D Physics module for the engine.
- *
- * Provides physics simulation, debug rendering, and exposes physics services.
- * Uses Rapier physics engine under the hood.
- *
- * @module modules/physics-2d
- * 
- * @remarks
- * - Registers physics services for reading, writing, and stepping.
- * - Provides a debug panel for inspecting simulation state and drawing body outlines.
- * - Handles initialization, update (stepping), and cleanup.
- *
- * @example
- * ```typescript
- * import { Physics2D } from 'modules/physics-2d'
- * engine.addModule(Physics2D())
- * ```
- *
- * @see {@link PhysicsService}
- * @see {@link DebugPanel}
+ * 2D Physics module (Rapier) with debug rendering via the Render Queue.
  */
 
-import type { Module, DebugPanel } from '../../engine/core/Types'
-import type { Colour, BodyId, Vec2 } from '../../engine/core/primitives'
-import type { PhysicsService, Shape, ShapeBox, ShapeCircle, ShapeCapsule } from './types'
-import type { DrawServicePort, Camera2DPort } from '../../engine/core/ports'
-import { PHYSICS_READ, PHYSICS_WRITE, PHYSICS_STEP, DRAW_ALL, CAMERA_2D } from '../../engine/core/tokens'
-import { createRapierPhysicsService } from './service'
-import { Colours } from '../../util/colour'
+import type { Module, DebugPanel } from '../../engine/core/Types';
+import type { Colour, BodyId } from '../../engine/core/primitives';
+import type { PhysicsService } from './types';
+
+import type { Camera2DReadPort } from '../../engine/core/ports';
+import { PHYSICS_READ, PHYSICS_WRITE, PHYSICS_STEP, CAMERA_2D_READ } from '../../engine/core/tokens';
+
+import type { RenderQueueWritePort } from '../../engine/core/ports';
+import { RENDER_QUEUE_WRITE } from '../../engine/core/tokens';
+
+import type { RenderCmd } from '../../engine/core/primitives/render';
+import { createRapierPhysicsService } from './service';
+import { Colours } from '../../util/colour';
+import { Shape2D, ShapeBox, ShapeCapsule, ShapeCircle } from '../../engine/core/primitives/collision2d';
 
 // ---------------------------------------------------------------------------
-// Geometry helpers (world space, y-up)
+// Geometry helpers (world space, y-up) — unchanged
 // ---------------------------------------------------------------------------
 function xformPoint(px: number, py: number, tx: number, ty: number, angle: number) {
-  const c = Math.cos(angle), s = Math.sin(angle)
-  return { x: tx + (px * c - py * s), y: ty + (px * s + py * c) }
+  const c = Math.cos(angle), s = Math.sin(angle);
+  return { x: tx + (px * c - py * s), y: ty + (px * s + py * c) };
 }
 function aabbOf(points: Array<{x:number;y:number}>) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const p of points) {
-    if (p.x < minX) minX = p.x
-    if (p.y < minY) minY = p.y
-    if (p.x > maxX) maxX = p.x
-    if (p.y > maxY) maxY = p.y
+    if (p.x < minX) minX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y > maxY) maxY = p.y;
   }
-  return { minX, minY, maxX, maxY }
+  return { minX, minY, maxX, maxY };
 }
 
 // Build an *approximate* world-space AABB for a shape on a body (meters, Y-up).
-function shapeWorldAABB(shape: Shape, bodyX: number, bodyY: number, bodyAngle: number) {
+function shapeWorldAABB(shape: Shape2D, bodyX: number, bodyY: number, bodyAngle: number) {
   switch (shape.type) {
     case 'box': {
-      const b = shape as ShapeBox
-      const ox = b.offset?.x ?? 0, oy = b.offset?.y ?? 0
-      const localAngle = (b.angle ?? 0)
-      const hx = b.hx, hy = b.hy
+      const b = shape as ShapeBox;
+      const ox = b.offset?.x ?? 0, oy = b.offset?.y ?? 0;
+      const localAngle = (b.angle ?? 0);
+      const hx = b.hx, hy = b.hy;
       const corners = [
         {x: -hx, y: -hy}, {x: +hx, y: -hy},
         {x: +hx, y: +hy}, {x: -hx, y: +hy},
       ].map(p => xformPoint(p.x, p.y, ox, oy, localAngle))
-       .map(p => xformPoint(p.x, p.y, bodyX, bodyY, bodyAngle))
-      const {minX, minY, maxX, maxY} = aabbOf(corners)
-      return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
+       .map(p => xformPoint(p.x, p.y, bodyX, bodyY, bodyAngle));
+      const {minX, minY, maxX, maxY} = aabbOf(corners);
+      return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
     }
     case 'circle': {
-      const c = shape as ShapeCircle
-      const ox = c.offset?.x ?? 0, oy = c.offset?.y ?? 0
-      const center = xformPoint(ox, oy, bodyX, bodyY, bodyAngle)
-      const r = c.radius
-      return { x: center.x - r, y: center.y - r, w: 2*r, h: 2*r }
+      const c = shape as ShapeCircle;
+      const ox = c.offset?.x ?? 0, oy = c.offset?.y ?? 0;
+      const center = xformPoint(ox, oy, bodyX, bodyY, bodyAngle);
+      const r = c.radius;
+      return { x: center.x - r, y: center.y - r, w: 2*r, h: 2*r };
     }
     case 'capsule': {
-      const cp = shape as ShapeCapsule
-      const ox = cp.offset?.x ?? 0, oy = cp.offset?.y ?? 0
-      const localAngle = (cp.angle ?? 0)
-      const r = cp.radius
-      const hh = cp.halfHeight
+      const cp = shape as ShapeCapsule;
+      const ox = cp.offset?.x ?? 0, oy = cp.offset?.y ?? 0;
+      const localAngle = (cp.angle ?? 0);
+      const r = cp.radius;
+      const hh = cp.halfHeight;
       const endsLocal = [
         {x: 0, y: -hh},
         {x: 0, y: +hh},
       ].map(p => xformPoint(p.x, p.y, ox, oy, localAngle))
-       .map(p => xformPoint(p.x, p.y, bodyX, bodyY, bodyAngle))
-      const {minX, minY, maxX, maxY} = aabbOf(endsLocal)
-      return { x: minX - r, y: minY - r, w: (maxX - minX) + 2*r, h: (maxY - minY) + 2*r }
+       .map(p => xformPoint(p.x, p.y, bodyX, bodyY, bodyAngle));
+      const {minX, minY, maxX, maxY} = aabbOf(endsLocal);
+      return { x: minX - r, y: minY - r, w: (maxX - minX) + 2*r, h: (maxY - minY) + 2*r };
     }
   }
 }
 
-// Convert a world AABB (min corner, meters, y-up) into a screen rect (top-left px).
-function aabbWorldToScreenRect(
-  draw: DrawServicePort,
-  cam: Readonly<Camera2DPort['get'] extends () => infer T ? T : never>,
-  aabb: { x:number; y:number; w:number; h:number }
+// ---------------------------------------------------------------------------
+// Camera math: world (m, y-up) → UI pixels (y-down, logical canvas size)
+// ---------------------------------------------------------------------------
+
+type Camera2DShape = {
+  position: { x:number; y:number };
+  zoom: number;
+  ppm: number;          // pixels per meter at zoom = 1
+  rotation?: number;    // radians CCW
+};
+
+// Convert a world point to UI pixels using the same convention as your renderer.
+function worldToUi(
+  world: {x:number;y:number},
+  cam: Camera2DShape,
+  screenW: number,
+  screenH: number
 ) {
-  // top-left is (minX, maxY), bottom-right is (maxX, minY) in world
-  const tl = draw.toScreen({ x: aabb.x,           y: aabb.y + aabb.h }, cam as any)
-  const br = draw.toScreen({ x: aabb.x + aabb.w,  y: aabb.y           }, cam as any)
-  return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y }
+  const dx = world.x - cam.position.x;
+  const dy = world.y - cam.position.y;
+  const ang = -(cam.rotation ?? 0);       // renderer applied -rotation for world->screen
+  const c = Math.cos(ang), s = Math.sin(ang);
+  const rx = dx * c - dy * s;
+  const ry = dx * s + dy * c;
+  const scale = cam.ppm * cam.zoom;
+  // flip Y to go y-up (world) → y-down (screen)
+  const sx = screenW * 0.5 + rx * scale;
+  const sy = screenH * 0.5 - ry * scale;
+  return { x: sx, y: sy };
 }
 
-// Stroke (outline) a screen-space rect using 4 thin filled rects (pixels).
-function strokeRectPx(draw: DrawServicePort, x: number, y: number, w: number, h: number, thicknessPx = 2, color?: Colour) {
-  draw.rect(x, y, w, thicknessPx, color)                    // top
-  draw.rect(x, y + h - thicknessPx, w, thicknessPx, color)  // bottom
-  draw.rect(x, y, thicknessPx, h, color)                    // left
-  draw.rect(x + w - thicknessPx, y, thicknessPx, h, color)  // right
+function worldAabbToUiRect(
+  aabb: { x:number;y:number;w:number;h:number },
+  cam: Camera2DShape,
+  screenW: number,
+  screenH: number
+) {
+  // World AABB: min=(x,y), max=(x+w,y+h). In UI px, top-left is (minX, maxY)
+  const tl = worldToUi({ x: aabb.x,         y: aabb.y + aabb.h }, cam, screenW, screenH);
+  const br = worldToUi({ x: aabb.x + aabb.w,y: aabb.y          }, cam, screenW, screenH);
+  return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
 }
 
-// Draw outlines for a body’s shapes (AABBs). Falls back to a small marker if shapes are unknown.
-function drawBodyOutline(
-  draw: DrawServicePort,
-  camVal: Readonly<Camera2DPort['get'] extends () => infer T ? T : never>,
-  physics: PhysicsService,
-  body: { id: BodyId, t: { x:number; y:number; angle:number } }
+// Emit 4 thin rects (in UI pixels) to simulate a stroked rectangle.
+function emitStrokeRectUI(
+  out: RenderCmd[],
+  passId: string,
+  layer: string,
+  z: number,
+  material: string,
+  x: number, y: number, w: number, h: number,
+  thicknessPx = 2
 ) {
-  const ud = physics.getUserData<{ shapes?: Array<{ shape: Shape }> }>(body.id)
-  const shapes = ud?.shapes?.map(s => s.shape)
-  const thicknessPx = 2
-
-  if (shapes && shapes.length > 0) {
-    for (const shape of shapes) {
-      const aabbWorld = shapeWorldAABB(shape, body.t.x, body.t.y, body.t.angle)
-      if (aabbWorld) {
-        const rectPx = aabbWorldToScreenRect(draw, camVal, aabbWorld)
-        strokeRectPx(draw, rectPx.x, rectPx.y, rectPx.w, rectPx.h, thicknessPx, Colours.CYAN)
-      }
-    }
-  } else {
-    // Unknown shapes: draw a small 0.3m square centered at body
-    const s = 0.3
-    const aabbWorld = { x: body.t.x - s * 0.5, y: body.t.y - s * 0.5, w: s, h: s }
-    const rectPx = aabbWorldToScreenRect(draw, camVal, aabbWorld)
-    strokeRectPx(draw, rectPx.x, rectPx.y, rectPx.w, rectPx.h, thicknessPx, Colours.WHITE)
-  }
-
-  // Label near center
-  const label = draw.toScreen({ x: body.t.x, y: body.t.y }, camVal as any)
-  draw.text(String(body.id), label.x + 6, label.y - 6, Colours.WHITE)
+  out.push(
+    { kind:"rect", passId, space:"ui", layer, z,     renderMaterial: material, x,         y,          w,         h: thicknessPx },
+    { kind:"rect", passId, space:"ui", layer, z,     renderMaterial: material, x,         y: y+h-thicknessPx, w, h: thicknessPx },
+    { kind:"rect", passId, space:"ui", layer, z,     renderMaterial: material, x,         y,          w: thicknessPx, h },
+    { kind:"rect", passId, space:"ui", layer, z,     renderMaterial: material, x: x+w-thicknessPx, y, w: thicknessPx, h }
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Module
 // ---------------------------------------------------------------------------
 export function Physics2D(): Module {
-  let physics: PhysicsService | undefined
+  let physics: PhysicsService | undefined;
+  let rq!: RenderQueueWritePort;
+  let cams!: Camera2DReadPort;
 
   const debugPanel: DebugPanel = {
     title: 'Physics 2D',
     render(ctx) {
-      if (!physics) return ['Physics not initialized']
-      const g = physics.getGravity()
-      const snapshot = physics.readSnapshot()
+      if (!physics) return ['Physics not initialized'];
+      const g = physics.getGravity();
+      const snapshot = physics.readSnapshot();
       return [
         `Gravity: ${g.x.toFixed(2)}, ${g.y.toFixed(2)}`,
         `Sim Time: ${snapshot.time.toFixed(3)}s`,
         `Bodies: ${snapshot.bodies.length}`,
-      ]
+      ];
     },
-    draw(ctx) {
-      if (!physics) return
-      const draw = ctx.services.getOrThrow(DRAW_ALL) as DrawServicePort | undefined
-      const camSvc = ctx.services.getOrThrow(CAMERA_2D) as Camera2DPort
-
-
-      if (!draw || !camSvc) return
-
-      const camVal = camSvc.get()
-      const snap = physics.readSnapshot()
-
-      // Draw all debug overlays in **UI space** for consistent pixel thickness
-      draw.toUi(() => {
-        for (const b of snap.bodies) {
-          drawBodyOutline(draw, camVal, physics!, {
-            id: b.id as unknown as BodyId,
-            t: { x: b.t.x, y: b.t.y, angle: b.t.angle }
-          })
-        }
-      })
-    }
-  }
+    // No direct drawing here anymore; visuals are pushed in module.render()
+  };
 
   return {
     id: 'physics/2d',
 
     async init(ctx) {
-      physics = await createRapierPhysicsService()
-      ctx.services.set(PHYSICS_READ,  physics)
-      ctx.services.set(PHYSICS_WRITE, physics)
-      ctx.services.set(PHYSICS_STEP,  physics)
+      physics = await createRapierPhysicsService();
+      ctx.services.set(PHYSICS_READ,  physics);
+      ctx.services.set(PHYSICS_WRITE, physics);
+      ctx.services.set(PHYSICS_STEP,  physics);
+
       // Register debug panel
-      ctx.bus.emit({ type: 'debug/panel/register', panel: debugPanel })
+      ctx.bus.emit({ type: 'debug/panel/register', panel: debugPanel });
     },
 
-    // If this module also owns the stepping, keep it here:
+    start(ctx) {
+      rq   = ctx.services.getOrThrow(RENDER_QUEUE_WRITE);
+      cams = ctx.services.getOrThrow(CAMERA_2D_READ);
+    },
+
+    // Step the simulation (unchanged)
     update(_ctx, dt) {
-      physics!.step(dt)
+      physics!.step(dt);
+    },
+
+    // NEW: push UI-space debug geometry every frame
+    render(ctx) {
+      if (!physics) return;
+
+      const cam = cams.get() as unknown as Camera2DShape;
+      const screenW = ctx.config.width;
+      const screenH = ctx.config.height;
+
+      const snap = physics.readSnapshot();
+
+      // Accumulate commands and push in one go to reduce overhead
+      const cmds: RenderCmd[] = [];
+      const passId = "ui";       // must match your coordinator's pass id
+      const layer  = "debug";    // keep above HUD
+      const stroke = "flat/cyan";
+      const labelMat = "text/default";
+      const thicknessPx = 2;
+
+      for (const b of snap.bodies) {
+        const bodyId = b.id as unknown as BodyId;
+        const ud = physics.getUserData<{ shapes?: Array<{ shape: Shape2D }> }>(bodyId);
+        const shapes = ud?.shapes?.map(s => s.shape);
+
+        if (shapes && shapes.length > 0) {
+          for (const shape of shapes) {
+            const aabbWorld = shapeWorldAABB(shape, b.t.x, b.t.y, b.t.angle);
+            if (!aabbWorld) continue;
+            const rectPx = worldAabbToUiRect(aabbWorld, cam, screenW, screenH);
+            emitStrokeRectUI(cmds, passId, layer, 100, stroke, rectPx.x, rectPx.y, rectPx.w, rectPx.h, thicknessPx);
+          }
+        } else {
+          // Unknown shapes: draw a small square at body center
+          const s = 0.3;
+          const aabbWorld = { x: b.t.x - s*0.5, y: b.t.y - s*0.5, w: s, h: s };
+          const rectPx = worldAabbToUiRect(aabbWorld, cam, screenW, screenH);
+          emitStrokeRectUI(cmds, passId, layer, 100, "flat/white", rectPx.x, rectPx.y, rectPx.w, rectPx.h, thicknessPx);
+        }
+
+        // Label the body id near center
+        const labelPos = worldToUi({ x: b.t.x, y: b.t.y }, cam, screenW, screenH);
+        cmds.push({
+          kind: "text",
+          passId,
+          space: "ui",
+          layer,
+          z: 101,
+          renderMaterial: labelMat,
+          x: labelPos.x + 6,
+          y: labelPos.y - 6,
+          text: String(bodyId),
+        });
+      }
+
+      if (cmds.length) rq.pushMany(cmds);
     },
 
     destroy() {
-      const d = (physics as any)?.dispose as (() => void) | undefined
-      try { d?.() } finally { physics = undefined }
+      const d = (physics as any)?.dispose as (() => void) | undefined;
+      try { d?.(); } finally { physics = undefined; }
     },
-  }
+  };
 }

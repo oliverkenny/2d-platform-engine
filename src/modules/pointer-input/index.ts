@@ -1,40 +1,18 @@
+// src/modules/pointer-input/index.ts
+
 /**
  * PointerInput module for handling pointer (mouse/touch) input events in a 2D platform engine.
- *
- * This module binds to an input surface (typically a canvas element) and listens for pointer events,
- * including pointer down, up, move, cancel, wheel, and context menu. It emits corresponding input events
- * to the game context's event bus, manages pointer lock state, and provides a debug panel for visualizing
- * pointer state and activity.
- *
- * @module modules/pointer-input
- *
- * @param opts - Configuration options for pointer input behavior.
- * @param opts.pointerLock - If true, requests pointer lock on the first pointer down event. Defaults to false.
- * @param opts.disableContextMenu - If true, prevents the context menu from appearing on right-click over the element. Defaults to true.
- *
- * @returns A Module object implementing pointer input handling, including lifecycle methods (`start`, `destroy`).
- *
- * @remarks
- * - The module requires an `InputSurfacePort` to be available in the game context's services.
- * - Pointer lock is requested only if enabled and the surface element is not already locked.
- * - The module maintains internal state for pointer position, button presses, wheel deltas, and last event type.
- * - A debug panel is registered to visualize pointer state, including logical coordinates, held buttons, wheel movement, and pointer lock status.
- * - Pointer events are mapped to logical coordinates using the surface's `toLogical` method.
- * - The module draws a visual pointer indicator on the surface using the `DrawServicePort`, if available.
- *
- * @example
- * ```typescript
- * import PointerInput from "./modules/pointer-input";
- *
- * const pointerModule = PointerInput({ pointerLock: true });
- * engine.registerModule(pointerModule);
- * ```
+ * Now emits UI render commands via the Render Queue instead of drawing directly.
  */
 
 import type { Module, GameContext, DebugPanel } from "../../engine/core/Types";
-import type { DrawServicePort, InputSurfacePort } from "../../engine/core/ports";
-import { DRAW_ALL, INPUT_SURFACE } from "../../engine/core/tokens";
-import { Colours } from "../../util/colour";
+import type { InputSurfacePort } from "../../engine/core/ports";
+import { INPUT_SURFACE } from "../../engine/core/tokens";
+
+import type { RenderQueueWritePort } from "../../engine/core/ports"; // your write port interface
+import { RENDER_QUEUE_WRITE } from "../../engine/core/tokens";       // public token for write access
+
+import type { RenderCmd } from "../../engine/core/primitives/render";
 import { Options } from "./types";
 
 export default function PointerInput(opts: Options = {}): Module {
@@ -42,18 +20,20 @@ export default function PointerInput(opts: Options = {}): Module {
 
   // Bound surface (published by the renderer)
   let surface: InputSurfacePort | undefined;
-  let draw: DrawServicePort | undefined;
+
+  // Render queue write port (what we use to draw the pointer indicator)
+  let rq!: RenderQueueWritePort;
 
   // Internal state
   let lastX = 0,
-    lastY = 0;
+      lastY = 0;
   const downButtons = new Set<number>();
   let buttonsBitfield = 0;
   let lastWheelDX = 0,
-    lastWheelDY = 0;
+      lastWheelDY = 0;
   let lastEventType: string = "—";
 
-  // Debug panel
+  // Debug panel (text only; no direct drawing here)
   const PANEL_ID = -1001 as any;
   const debugPanel: DebugPanel = {
     id: PANEL_ID,
@@ -61,9 +41,7 @@ export default function PointerInput(opts: Options = {}): Module {
     order: 500,
     render() {
       const attached = !!surface;
-      const el = attached
-        ? (surface!.element as unknown as Element)
-        : undefined;
+      const el = attached ? (surface!.element as unknown as Element) : undefined;
       const locked = !!el && document.pointerLockElement === el;
 
       const names: string[] = [];
@@ -77,19 +55,13 @@ export default function PointerInput(opts: Options = {}): Module {
         attached ? "Surface: attached" : "Surface: (not available)",
         `Pointer Lock: ${locked ? "ON" : "off"}`,
         `Cursor (logical): ${lastX.toFixed(1)}, ${lastY.toFixed(1)}`,
-        `Held buttons: ${
-          names.length ? names.join(", ") : "—"
-        }  [bits=${buttonsBitfield}]`,
+        `Held buttons: ${names.length ? names.join(", ") : "—"}  [bits=${buttonsBitfield}]`,
         `Down set size: ${downButtons.size}`,
         `Last wheel: dx=${lastWheelDX.toFixed(1)} dy=${lastWheelDY.toFixed(1)}`,
         `Last event: ${lastEventType}`,
       ];
     },
-    draw(ctx) {
-      if (draw) {
-        drawPointer(draw);
-      }
-    }
+    // No draw(ctx, draw) here anymore; rendering happens in module.render()
   };
 
   // Handlers (assigned on bind)
@@ -252,56 +224,83 @@ export default function PointerInput(opts: Options = {}): Module {
     window.removeEventListener("blur", onBlur);
   }
 
-  function drawPointer(draw: DrawServicePort) {
+  /**
+   * Enqueue UI-space render commands to show the pointer.
+   * Uses logical (canvas) pixels so no DPR math is needed.
+   */
+  function enqueuePointerCommands() {
     if (!surface) return;
-  
-    const el = surface.element as HTMLCanvasElement;
-  
-    // Map CSS-px → canvas-px
-    const rect = el.getBoundingClientRect();
-    const sx = rect.width  ? el.width  / rect.width  : 1;
-    const sy = rect.height ? el.height / rect.height : 1;
-  
-    const cx = lastX * sx;
-    const cy = lastY * sy;
-  
-    draw.toUi(() => {
-      // outer ring
-      draw.circle(cx, cy, 12, undefined, Colours.WHITE, 3);
-      // inner dot
-      draw.circle(cx, cy, 4, Colours.BLACK);
-    });
+
+    const passId = "ui";         // matches coordinator's DEFAULT_PASSES
+    const layer  = "debug";      // draw above HUD but under other debug if you like
+    const space  = "ui";
+
+    // White outer ring (r ≈ 12)
+    const ring: RenderCmd = {
+      kind: "circle",
+      passId,
+      space,
+      layer,
+      z: 1000,
+      renderMaterial: "flat/white",
+      x: lastX,
+      y: lastY,
+      r: 12,
+    };
+
+    // Inner fill to create a "ring" look (black circle a bit smaller)
+    const innerFill: RenderCmd = {
+      kind: "circle",
+      passId,
+      space,
+      layer,
+      z: 1001,
+      renderMaterial: "flat/black",
+      x: lastX,
+      y: lastY,
+      r: 9, // 12 - strokeThickness (~3)
+    };
+
+    // Tiny center dot (optional; keeps the old visual)
+    const dot: RenderCmd = {
+      kind: "circle",
+      passId,
+      space,
+      layer,
+      z: 1002,
+      renderMaterial: "flat/black",
+      x: lastX,
+      y: lastY,
+      r: 4,
+    };
+
+    rq.pushMany([ring, innerFill, dot]);
   }
-  
 
   return {
     id: "input/pointer",
 
     start(ctx) {
+      // Register debug panel (text only)
       ctx.bus.emit({ type: "debug/panel/register", panel: debugPanel });
 
-      draw = ctx.services.get(DRAW_ALL);
-      if (!draw) {
-        console.warn(
-          "[input/pointer] No DrawService; debug pointer rendering disabled"
-        );
-      }
-
+      // Get services
+      rq = ctx.services.getOrThrow(RENDER_QUEUE_WRITE);
       surface = ctx.services.get(INPUT_SURFACE);
+
       if (surface) bind(ctx, surface);
-      else
-        console.warn(
-          "[input/pointer] No InputSurface yet; will retry on start()"
-        );
+      else console.warn("[input/pointer] No InputSurface yet; will retry on start()");
 
       if (!surface) {
         surface = ctx.services.get(INPUT_SURFACE);
         if (surface) bind(ctx, surface);
-        else
-          console.warn(
-            "[input/pointer] InputSurface still missing; pointer input disabled"
-          );
+        else console.warn("[input/pointer] InputSurface still missing; pointer input disabled");
       }
+    },
+
+    // NEW: push render commands every frame
+    render() {
+      enqueuePointerCommands();
     },
 
     destroy() {

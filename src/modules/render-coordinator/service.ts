@@ -1,22 +1,28 @@
-import type { RenderFn } from "../../engine/core/Types";
-import { RenderQueuePort, RenderQueueReadPort, RenderQueueWritePort } from "../../engine/core/ports";
+import type { RenderQueueWritePort, RenderQueueReadPort } from "../../engine/core/ports";
+import type { RenderCmd } from "../../engine/core/primitives/render";
 
-export function createRenderQueueService(): RenderQueuePort & RenderQueueReadPort & RenderQueueWritePort {
-  const queues = new Map<string, Array<{ z: number; draw: RenderFn }>>();
+export function createRenderQueueService(): RenderQueueWritePort & RenderQueueReadPort & {
+  registerPass(id: string): void;
+} {
+  const byPass = new Map<string, RenderCmd[]>();
 
   return {
-    registerPass(id) {
-      if (!queues.has(id)) queues.set(id, []);
+    registerPass(id) { if (!byPass.has(id)) byPass.set(id, []); },
+
+    push(cmd) {
+      const arr = byPass.get(cmd.passId) ?? [];
+      arr.push(cmd);
+      byPass.set(cmd.passId, arr);
     },
-    enqueue(passId, draw, z = 0) {
-      if (!queues.has(passId)) queues.set(passId, []);
-      queues.get(passId)!.push({ z, draw });
-    },
+
+    pushMany(cmds) { for (const c of cmds) this.push(c); },
+
+    clearPass(passId) { byPass.set(passId, []); },
+
     drain(passId) {
-      const arr = queues.get(passId) ?? [];
-      queues.set(passId, []);      // clear for next frame
-      // stable sort by z
-      return arr.sort((a, b) => a.z - b.z);
+      const arr = byPass.get(passId) ?? [];
+      byPass.set(passId, []);
+      return arr;
     },
   };
 }

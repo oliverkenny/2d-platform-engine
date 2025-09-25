@@ -1,6 +1,5 @@
-import { RenderFn } from "../Types";
+import type { RenderCmd } from "../primitives/render";
 
 export interface RenderQueueReadPort {
-  /** Get & clear the queue for a pass (used by coordinator). */
-  drain(passId: string): Array<{ z: number; draw: RenderFn }>;
+  drain(passId: string): ReadonlyArray<RenderCmd>;
 }

@@ -1,150 +1,105 @@
-import { createEventBus } from './EventBus'
-import { createServices } from './Services'
-import type { EngineConfig, Module, GameContext } from './Types'
+// src/engine/core/Engine.ts
+import { createEventBus } from './EventBus';
+import { createServices } from './Services';
+import type { EngineConfig, Module, GameInitContext, GameContext } from './Types';
+import type { ServiceToken } from './Token';
 
-/**
- * Core game engine.
- *
- * @remarks
- * The engine owns a fixed-step update loop and a free render pass.
- * Modules are added via {@link Engine.add} and communicate using the
- * {@link GameContext.bus | event bus} and {@link GameContext.services | service registry}.
- *
- * @example
- * ```ts
- * const engine = new Engine({ width: 800, height: 600, mount })
- *   .add(RendererCanvas())
- *   .add(MyModule());
- * await engine.init();
- * await engine.start();
- * ```
- */
 export class Engine {
-  /** Registered modules in call order for update/render. */
-  private modules: Module[] = []
+  private modules: Module[] = [];
 
-  /** Shared context passed to all module hooks. */
-  private ctx: GameContext
+  // Full context for init() only (has full Services)
+  private initCtx: GameInitContext;
 
-  /** Engine loop running flag. */
-  private running = false
+  // Per-module scoped contexts used after init() (ServicesView only)
+  private moduleCtxs: ReadonlyArray<GameContext> = [];
 
-  /** Timestamp of previous frame (ms, from performance.now). */
-  private last = 0
+  private running = false;
+  private last = 0;
 
-  /**
-   * Create a new engine instance.
-   *
-   * @param config - Canvas size, target FPS, and mounting options.
-   */
-  constructor(config: EngineConfig) {
-    const bus = createEventBus()
-    const services = createServices()
-    this.ctx = { config, bus, services }
+  private resolveWhitelist: (m: Module) => ReadonlyArray<ServiceToken<any>>;
 
-    // Broadcast bus events to all modules via onEvent()
-    const origEmit = bus.emit.bind(bus)
+  constructor(
+    config: EngineConfig,
+    opts?: { resolveWhitelist?: (m: Module) => ReadonlyArray<ServiceToken<any>> }
+  ) {
+    const bus = createEventBus();
+    const services = createServices();
+    this.initCtx = { config, bus, services };
+    this.resolveWhitelist = opts?.resolveWhitelist ?? (() => []);
+
+    // Broadcast using scoped contexts after init()
+    const origEmit = bus.emit.bind(bus);
     bus.emit = (e) => {
       origEmit(e);
-      for (const m of this.modules) {
-        try {
-          m.onEvent?.(this.ctx, e)
-        } catch (err) {
-          console.error(`Error in module ${m.id} handling event`, e, err)
+      for (let i = 0; i < this.modules.length; i++) {
+        const m = this.modules[i];
+        const ctx = this.moduleCtxs[i] ?? toRunCtx(this.initCtx, this.initCtx.services.view([]));
+        try { m.onEvent?.(ctx, e); } catch (err) {
+          console.error(`Error in module ${m.id} handling event`, e, err);
         }
       }
-    }
+    };
   }
 
-  /**
-   * Add a module (plugin) to the engine.
-   *
-   * @remarks
-   * Modules should have no cross-imports; they should communicate via the event bus
-   * and services. Order can matter if modules rely on earlier services being registered
-   * during {@link Module.init | init()}.
-   *
-   * @param module - The module to register.
-   * @returns The engine (for chaining).
-   */
-  add(module: Module) {
-    this.modules.push(module)
-    return this
-  }
+  add(module: Module) { this.modules.push(module); return this; }
 
-  /**
-   * Initialize all modules.
-   *
-   * @remarks
-   * Called once before {@link Engine.start}. Use this to register services
-   * and subscribe to events. Avoid heavy asset loading here.
-   */
   async init() {
-    for (const m of this.modules) {
-      await m.init?.(this.ctx)
-    }
+    // Full access so modules can register services/tokens.
+    for (const m of this.modules) await m.init?.(this.initCtx);
+
+    // Build one scoped context per module (reuses config & bus by reference).
+    this.moduleCtxs = Object.freeze(
+      this.modules.map((m) =>
+        toRunCtx(this.initCtx, this.initCtx.services.view(this.resolveWhitelist(m)))
+      )
+    );
   }
 
-  /**
-   * Start the engine loop.
-   *
-   * @remarks
-   * Calls each module's {@link Module.start | start()} first (good place to load assets),
-   * then begins the fixed-step update loop with a render pass.
-   *
-   * @example
-   * ```ts
-   * await engine.init();
-   * await engine.start();
-   * ```
-   */
   async start() {
-    for (const m of this.modules) {
-      await m.start?.(this.ctx)
+    for (let i = 0; i < this.modules.length; i++) {
+      await this.modules[i].start?.(this.moduleCtxs[i]);
     }
-    this.running = true
-    this.last = performance.now()
-    requestAnimationFrame(this.frame)
+    this.running = true;
+    this.last = performance.now();
+    requestAnimationFrame(this.frame);
   }
 
-  /**
-   * Per-frame callback (internal).
-   * @param t - Current timestamp from rAF.
-   * @internal
-   */
   private frame = (t: number) => {
-    if (!this.running) return
-    const time = this.ctx.services.time
-    const dtMs = t - this.last; this.last = t
-    time.accumulator += dtMs / 1000
+    if (!this.running) return;
+    const time = this.initCtx.services.time;
+    const dtMs = t - this.last; this.last = t;
+    time.accumulator += dtMs / 1000;
 
-    // Fixed-step updates
     while (time.accumulator >= time.fixedStep) {
-      for (const m of this.modules) m.update?.(this.ctx, time.fixedStep)
-      time.accumulator -= time.fixedStep
+      for (let i = 0; i < this.modules.length; i++) {
+        this.modules[i].update?.(this.moduleCtxs[i], time.fixedStep);
+      }
+      time.accumulator -= time.fixedStep;
     }
 
-    const alpha = time.accumulator / time.fixedStep
-    for (const m of this.modules) m.render?.(this.ctx, alpha)
+    const alpha = time.accumulator / time.fixedStep;
+    for (let i = 0; i < this.modules.length; i++) {
+      this.modules[i].render?.(this.moduleCtxs[i], alpha);
+    }
 
-    requestAnimationFrame(this.frame)
-  }
+    requestAnimationFrame(this.frame);
+  };
 
-  /**
-   * Stop the engine and dispose all modules.
-   *
-   * @remarks
-   * Calls each module's {@link Module.destroy | destroy()} if present.
-   */
   stop() {
-    this.running = false
-    this.modules.forEach(m => m.destroy?.())
+    this.running = false;
+    this.modules.forEach(m => m.destroy?.());
   }
 
-  /**
-   * The live game context (config, event bus, services).
-   *
-   * @readonly
-   */
-  get context(): GameContext { return this.ctx }
+  /** If you expose this, keep its type explicit: full init context. */
+  get context(): GameInitContext { return this.initCtx; }
+}
+
+/** Share config/bus by reference; swap in a per-module ServicesView. */
+function toRunCtx(root: GameInitContext, view: ReturnType<typeof root.services.view>): GameContext {
+  const ctx = {
+    get config() { return root.config; },
+    get bus() { return root.bus; },
+    services: view,
+  } as GameContext;
+  return Object.freeze(ctx);
 }

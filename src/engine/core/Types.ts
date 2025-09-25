@@ -1,5 +1,4 @@
-import { DrawServicePort } from "./ports/draw.all";
-import { BodyId, Camera2D, Space } from "./primitives";
+import { BodyId, Camera2D } from "./primitives";
 import type { ServiceToken } from "./Token";
 
 /**
@@ -71,7 +70,7 @@ export interface Module {
    * - Subscribe to events: `ctx.bus.on('level/loaded', ...)`
    * Avoid heavy network/asset work here; prefer `start()`.
    */
-  init?(ctx: GameContext): Promise<void> | void;
+  init?(ctx: GameInitContext): Promise<void> | void;
 
   /**
    * Called once when the engine starts.
@@ -323,27 +322,34 @@ export interface Services {
   has<T>(token: ServiceToken<T>): boolean;
 }
 
-/**
- * Context passed to every module hook.
- * @remarks
- * This is the primary way modules interact with the engine and each other
- * (via the {@link EventBus} and {@link Services} registry).
- */
-export type GameContext = {
-  /**
-   * Engine configuration (canvas sizing / mounting).
-   */
+export interface ServicesView {
+  readonly time: TimeService;
+  readonly assets: AssetService;
+  rng(): number;
+
+  get<T>(t: ServiceToken<T>): T | undefined;
+  getOrThrow<T>(t: ServiceToken<T>): T;
+  has<T>(t: ServiceToken<T>): boolean;
+}
+
+export interface Services extends ServicesView {
+  set<T>(t: ServiceToken<T>, v: T): void;
+  /** Return a read-only, whitelisted facade for modules. */
+  view(whitelist: ReadonlyArray<ServiceToken<any>>): ServicesView;
+}
+
+/** Context used during init() — full Services so modules can register tokens. */
+export type GameInitContext = {
   config: EngineConfig;
-
-  /**
-   * Global event bus for decoupled communication.
-   */
   bus: EventBus;
+  services: Services;       // <— full
+};
 
-  /**
-   * Shared service registry (time, assets, custom services).
-   */
-  services: Services;
+/** Context used after init() (start/update/render/onEvent) — read-only services view. */
+export type GameContext = {
+  config: EngineConfig;
+  bus: EventBus;
+  services: ServicesView;   // <— view
 };
 
 export type PanelId = BodyId;
@@ -353,7 +359,6 @@ export type DebugPanel = {
   title: string;
   order?: number;
   render(ctx: GameContext): string[];
-  draw?(ctx: GameContext, draw: DrawServicePort): void;
 };
 
 /**
@@ -378,8 +383,3 @@ export interface SpriteOptions {
   /** Alpha transparency, 0..1, default 1 */
   alpha?: number;
 }
-
-export type RenderFn = (
-  draw: DrawServicePort,
-  cam?: Readonly<Camera2D>
-) => void;

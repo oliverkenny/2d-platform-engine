@@ -1,5 +1,6 @@
-import type { Vec2, BodyId, Material } from '../../engine/core/primitives'
+import type { Vec2, BodyId, PhysicsMaterial } from '../../engine/core/primitives'
 import type { PhysicsReadPort, PhysicsWritePort, PhysicsStepPort } from '../../engine/core/ports'
+import { BodyType, Shape2D } from '../../engine/core/primitives/collision2d';
 
 /**
  * Physics Service API (2D)
@@ -27,75 +28,6 @@ import type { PhysicsReadPort, PhysicsWritePort, PhysicsStepPort } from '../../e
  * - Use a fixed update (e.g., 60 Hz) and accumulate render time separately.
  * - Prefer impulses/forces for gameplay over directly overwriting velocities every frame.
  */
-
-/**
- * Type of body:
- * - `"dynamic"`: fully simulated; affected by forces, impulses, and gravity.
- * - `"kinematic"`: driven by user code via target transform/velocity; ignores gravity and forces.
- * - `"static"`: infinite mass; does not move; useful for terrain and walls.
- */
-export type BodyType = "dynamic" | "kinematic" | "static";
-
-/**
- * Circle shape (2D disc).
- * @remarks
- * - Origin is at the body's origin plus optional {@link offset}.
- * - `radius` must be > 0.
- */
-export interface ShapeCircle {
-  /** Discriminator. */
-  type: "circle";
-  /** Circle radius in meters. */
-  radius: number;
-  /** Local offset in meters from the body origin (before rotation). */
-  offset?: Vec2;
-}
-
-/**
- * Axis-aligned box in the body's local frame before rotation.
- * @remarks
- * - `hx` and `hy` are **half extents** in meters (i.e., width = 2*hx).
- * - `angle` rotates the box around its local center; applied after `offset` and before body transform.
- */
-export interface ShapeBox {
-  /** Discriminator. */
-  type: "box";
-  /** Half extent on X in meters. */
-  hx: number;
-  /** Half extent on Y in meters. */
-  hy: number;
-  /** Local offset in meters from the body origin (before rotation). */
-  offset?: Vec2;
-  /** Local rotation in radians applied to the box (optional). */
-  angle?: number;
-}
-
-/**
- * Capsule (stadium) shape aligned to its local Y by default.
- * @remarks
- * - `halfHeight` is half the cylindrical segment length (not counting the semicircular caps).
- * - `radius` is the radius of the semicircular caps and cylindrical segment.
- * - Use `angle` to tilt in local space; `offset` to shift relative to body origin.
- */
-export interface ShapeCapsule {
-  /** Discriminator. */
-  type: "capsule";
-  /** Half of the cylinder height in meters (excluding caps). Must be >= 0. */
-  halfHeight: number;
-  /** Radius in meters for the caps and cylinder. Must be > 0. */
-  radius: number;
-  /** Local offset in meters from the body origin (before rotation). */
-  offset?: Vec2;
-  /** Local rotation in radians applied to the capsule (optional). */
-  angle?: number;
-}
-
-/**
- * Union of all supported convex shapes.
- * @remarks
- * Extend with polygons, chains, etc., as engine support grows.
- */
-export type Shape = ShapeCircle | ShapeBox | ShapeCapsule;
 
 /**
  * Options to create a body.
@@ -147,7 +79,7 @@ export interface BodyOpts {
    * - The *effective mass* of a dynamic body is computed from the union of fixture densities.
    * - Multiple shapes are common for complex hulls or sensors.
    */
-  shapes: Array<{ shape: Shape; material?: Material }>;
+  shapes: Array<{ shape: Shape2D; material?: PhysicsMaterial }>;
 
   /** Opaque user-owned payload for identification, ECS linkage, etc. */
   userData?: unknown;

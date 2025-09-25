@@ -1,8 +1,7 @@
-import { RenderFn } from "../Types";
+import type { RenderCmd } from "../primitives/render";
 
 export interface RenderQueueWritePort {
-  /** Register a pass id so queues exist up-front (optional but nice). */
-  registerPass(id: string): void;
-  /** Enqueue a call for a pass (z default 0). */
-  enqueue(passId: string, fn: RenderFn, z?: number): void;
+  push(cmd: RenderCmd): void;
+  pushMany(cmds: RenderCmd[]): void;
+  clearPass(passId: string): void;
 }

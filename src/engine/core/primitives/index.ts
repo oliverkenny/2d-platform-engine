@@ -1,4 +1,4 @@
-export * from './material'
+export * from './material.physics'
 export * from './colour'
 export * from './ids'
 export * from './math'

@@ -7,7 +7,7 @@
  * - `isSensor` triggers contact events but does not produce collision response.
  * - Filtering uses classic Box2D-like `categoryBits`/`maskBits`/`groupIndex`.
  */
-export interface Material {
+export interface PhysicsMaterial {
   /** Mass per unit area (kg/m²) for 2D. Default: engine-chosen (often 1). */
   density?: number;
   /** Surface friction coefficient. Default: engine-chosen (often 0.5). */
@@ -29,3 +29,5 @@ export interface Material {
    */
   events?: "none" | "contacts" | "intersections" | "all";
 }
+
+export type PhysicsMaterialId = string;
